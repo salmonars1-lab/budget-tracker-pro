@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Budget Tracker{% endblock %}
+
+{% block content %}
+<div x-data="analytics()" x-init="init()">
+    <!-- Header with Branding -->
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Analytics Dashboard</h2>
+            <p class="text-gray-600">Visualize your spending patterns and progress</p>
+        </div>
+        <div class="text-right">
+            <div class="text-sm text-gray-500">Powered by</div>
+            <div class="text-lg font-bold text-blue-600">Budget Tracker Pro</div>
+            <div class="text-xs text-gray-400">Personal Finance Suite</div>
+        </div>
+    </div>
+
+    <!-- Time Period Navigation -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-gray-700">Time Period:</span>
+                <div class="flex space-x-2">
+                    <button @click="setTimePeriod('current')" 
+                            :class="timePeriod === 'current' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Current Month
+                    </button>
+                    <button @click="setTimePeriod('last')" 
+                            :class="timePeriod === 'last' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Last Month
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Month History Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" 
+                        class="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium">
+                    <span>Month History</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <div x-show="open" @click.away="open = false" x-cloak
+                     class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+                    <div class="py-2">
+                        <!-- Previous months would be populated dynamically -->
+                        <button @click="setTimePeriod('2025-06'); open = false" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            June 2025
+                        </button>
+                        <button @click="setTimePeriod('2025-05'); open = false" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            May 2025
+                        </button>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <button @click="setTimePeriod('all'); open = false" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 font-medium">
+                            All Time View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Period Display -->
+        <div class="mt-3 text-sm text-gray-600">
+            <span x-text="getCurrentPeriodText()"></span>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Category Spending Breakdown -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                Category Spending - <span x-text="getCurrentPeriodName()"></span>
+            </h3>
+            {% if category_spending %}
+            <div class="relative h-64 mb-4">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="space-y-2 max-h-32 overflow-y-auto">
+                {% for item in category_spending %}
+                <div class="flex justify-between text-sm border-b border-gray-100 pb-1">
+                    <span class="text-gray-600">{{ item.category }}</span>
+                    <span class="font-medium">{{ item.total_spent|currency }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-4xl mb-4">📊</div>
+                <p class="mb-2">No spending data for this period.</p>
+                <a href="/add-transaction" class="text-blue-600 hover:text-blue-700 font-medium">Add some transactions</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Budget vs Actual -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                Budget vs Actual - <span x-text="getCurrentPeriodName()"></span>
+            </h3>
+            {% if budget_vs_actual %}
+            <div class="relative h-64 mb-4">
+                <canvas id="budgetChart"></canvas>
+            </div>
+            <div class="space-y-2 max-h-32 overflow-y-auto">
+                {% for item in budget_vs_actual %}
+                <div class="flex justify-between text-sm border-b border-gray-100 pb-1">
+                    <span class="text-gray-600">{{ item.category }}</span>
+                    <div class="text-right">
+                        <div>{{ item.spent|currency }} / {{ item.budgeted|currency }}</div>
+                        <div class="text-xs {% if item.spent > item.budgeted %}text-red-600{% else %}text-green-600{% endif %}">
+                            {{ ((item.spent / item.budgeted * 100) if item.budgeted > 0 else 0)|round(1) }}%
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-4xl mb-4">📋</div>
+                <p class="mb-2">No budget data available.</p>
+                <a href="/budget-setup" class="text-blue-600 hover:text-blue-700 font-medium">Set up your budget</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Monthly Spending Trends -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Spending Trends (Last 6 Months)</h3>
+            {% if monthly_trends %}
+            <div class="relative h-64 mb-4">
+                <canvas id="trendsChart"></canvas>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="text-center p-3 bg-red-50 rounded-lg">
+                    <div class="text-red-600 font-medium">Avg Monthly Spending</div>
+                    <div class="text-lg font-bold">{{ (monthly_trends|sum(attribute='regular_spending') / monthly_trends|length)|currency }}</div>
+                </div>
+                <div class="text-center p-3 bg-green-50 rounded-lg">
+                    <div class="text-green-600 font-medium">Avg Monthly Savings</div>
+                    <div class="text-lg font-bold">{{ (monthly_trends|sum(attribute='sinking_contributions') / monthly_trends|length)|currency }}</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-4xl mb-4">📈</div>
+                <p class="mb-1">Not enough data for trends yet.</p>
+                <p class="text-xs">Add more transactions over time to see patterns.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sinking Fund Progress -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Sinking Fund Progress</h3>
+            {% if sinking_fund_progress %}
+            <div class="space-y-4">
+                {% for fund in sinking_fund_progress %}
+                <div class="border-b border-gray-100 pb-3 last:border-b-0">
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="font-medium text-gray-900">{{ fund.name }}</span>
+                        <span class="text-gray-600">{{ fund.progress_percent }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="h-2 rounded-full transition-all duration-300
+                                   {% if fund.progress_percent >= 100 %}bg-green-500
+                                   {% elif fund.progress_percent >= 75 %}bg-blue-500
+                                   {% elif fund.progress_percent >= 50 %}bg-yellow-500
+                                   {% else %}bg-red-500{% endif %}" 
+                             style="width: {{ [fund.progress_percent, 100]|min }}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>{{ fund.current_balance|currency }} saved</span>
+                        <span>Target: {{ fund.target_amount|currency }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Sinking Fund Summary -->
+            <div class="mt-6 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="text-center">
+                        <div class="text-blue-600 font-medium">Total Saved</div>
+                        <div class="text-lg font-bold">{{ sinking_fund_progress|sum(attribute='current_balance')|currency }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-blue-600 font-medium">Total Targets</div>
+                        <div class="text-lg font-bold">{{ sinking_fund_progress|sum(attribute='target_amount')|currency }}</div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-4xl mb-4">🎯</div>
+                <p>No sinking funds set up yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Smart Insights Section -->
+    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
+            <span class="text-2xl mr-2">💡</span>
+            Smart Insights
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            {% if budget_vs_actual %}
+            {% set over_budget = budget_vs_actual|selectattr('spent', 'gt', 'budgeted')|list %}
+            {% if over_budget %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="text-red-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">⚠️</span>
+                    Over Budget Alert
+                </div>
+                <div class="text-red-700 text-xs mt-2">
+                    {{ over_budget|length }} categories over budget this period
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            {% if sinking_fund_progress %}
+            {% set completed_funds = sinking_fund_progress|selectattr('progress_percent', 'ge', 100)|list %}
+            {% if completed_funds %}
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="text-green-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">🎯</span>
+                    Goals Achieved
+                </div>
+                <div class="text-green-700 text-xs mt-2">
+                    {{ completed_funds|length }} sinking fund goals completed!
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            {% if monthly_trends|length >= 2 %}
+            {% set last_month = monthly_trends[-1] %}
+            {% set prev_month = monthly_trends[-2] %}
+            {% if last_month.regular_spending < prev_month.regular_spending %}
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="text-green-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">📉</span>
+                    Spending Down
+                </div>
+                <div class="text-green-700 text-xs mt-2">
+                    You spent {{ (prev_month.regular_spending - last_month.regular_spending)|currency }} less than last month!
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Always show a motivational insight -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="text-blue-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">💪</span>
+                    Keep Going!
+                </div>
+                <div class="text-blue-700 text-xs mt-2">
+                    You're actively tracking your finances - that's the first step to financial success!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Branding -->
+    <div class="mt-8 text-center text-sm text-gray-500">
+        <div class="flex items-center justify-center space-x-2">
+            <span>Built with</span>
+            <span class="text-red-500">♥</span>
+            <span>by</span>
+            <span class="font-semibold text-blue-600">Budget Tracker Pro</span>
+            <span>•</span>
+            <span>Your Personal Finance Companion</span>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function analytics() {
+    return {
+        charts: {},
+        timePeriod: 'current', // current, last, specific month, or all
+        
+        init() {
+            this.initCharts();
+        },
+        
+        setTimePeriod(period) {
+            this.timePeriod = period;
+            // In a real implementation, this would trigger data refresh
+            // For now, it just updates the UI
+        },
+        
+        getCurrentPeriodText() {
+            switch(this.timePeriod) {
+                case 'current': return 'Showing data for the current month';
+                case 'last': return 'Showing data for the previous month';
+                case 'all': return 'Showing data for all time';
+                default: return `Showing data for ${this.timePeriod}`;
+            }
+        },
+        
+        getCurrentPeriodName() {
+            switch(this.timePeriod) {
+                case 'current': return '{{ current_month_name }}';
+                case 'last': return 'Last Month';
+                case 'all': return 'All Time';
+                default: return this.timePeriod;
+            }
+        },
+        
+        initCharts() {
+            // Category Spending Doughnut Chart
+            {% if category_spending %}
+            const categoryCtx = document.getElementById('categoryChart');
+            if (categoryCtx) {
+                this.charts.category = new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [{% for item in category_spending %}'{{ item.category }}'{{ "," if not loop.last }}{% endfor %}],
+                        datasets: [{
+                            data: [{% for item in category_spending %}{{ item.total_spent }}{{ "," if not loop.last }}{% endfor %}],
+                            backgroundColor: [
+                                '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+                                '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            {% endif %}
+            
+            // Budget vs Actual Bar Chart
+            {% if budget_vs_actual %}
+            const budgetCtx = document.getElementById('budgetChart');
+            if (budgetCtx) {
+                this.charts.budget = new Chart(budgetCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [{% for item in budget_vs_actual %}'{{ item.category[:15] }}{{ "..." if item.category|length > 15 }}'{{ "," if not loop.last }}{% endfor %}],
+                        datasets: [{
+                            label: 'Budgeted',
+                            data: [{% for item in budget_vs_actual %}{{ item.budgeted }}{{ "," if not loop.last }}{% endfor %}],
+                            backgroundColor: '#93C5FD',
+                            borderColor: '#3B82F6',
+                            borderWidth: 1
+                        }, {
+                            label: 'Spent',
+                            data: [{% for item in budget_vs_actual %}{{ item.spent }}{{ "," if not loop.last }}{% endfor %}],
+                            backgroundColor: '#FCA5A5',
+                            borderColor: '#EF4444',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            {% endif %}
+            
+            // Monthly Trends Line Chart
+            {% if monthly_trends %}
+            const trendsCtx = document.getElementById('trendsChart');
+            if (trendsCtx) {
+                this.charts.trends = new Chart(trendsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [{% for item in monthly_trends %}'{{ item.month }}'{{ "," if not loop.last }}{% endfor %}],
+                        datasets: [{
+                            label: 'Regular Spending',
+                            data: [{% for item in monthly_trends %}{{ item.regular_spending }}{{ "," if not loop.last }}{% endfor %}],
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Sinking Fund Contributions',
+                            data: [{% for item in monthly_trends %}{{ item.sinking_contributions }}{{ "," if not loop.last }}{% endfor %}],
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            {% endif %}
+        }
+    }
+}
+</script>
+{% endblock %}

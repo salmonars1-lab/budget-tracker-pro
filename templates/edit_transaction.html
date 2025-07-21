@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Transaction - Budget Tracker{% endblock %}
+
+{% block content %}
+<div x-data="editTransactionForm()" class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Edit Transaction</h2>
+        <p class="text-gray-600">Update transaction details</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST" action="/transaction/{{ transaction.id }}/edit">
+            <div class="space-y-6">
+                <!-- Date -->
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input type="date" 
+                           id="date" 
+                           name="date" 
+                           value="{{ transaction.date }}"
+                           x-model="date"
+                           required
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input type="text" 
+                           id="description" 
+                           name="description" 
+                           value="{{ transaction.description }}"
+                           x-model="description"
+                           placeholder="e.g., Grocery shopping at Supermarket"
+                           required
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Amount (JMD)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-gray-500">$</span>
+                        <input type="number" 
+                               id="amount" 
+                               name="amount" 
+                               value="{{ transaction.amount }}"
+                               x-model="amount"
+                               step="0.01" 
+                               min="0"
+                               placeholder="0.00"
+                               required
+                               class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select id="category_id" 
+                            name="category_id" 
+                            x-model="categoryId"
+                            @change="loadSubcategories()"
+                            required
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select a category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == transaction.category_id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Subcategory -->
+                <div x-show="subcategories.length > 0" x-cloak>
+                    <label for="subcategory_id" class="block text-sm font-medium text-gray-700 mb-2">Subcategory (Optional)</label>
+                    <select id="subcategory_id" 
+                            name="subcategory_id" 
+                            x-model="subcategoryId"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select a subcategory</option>
+                        <template x-for="subcategory in subcategories" :key="subcategory.id">
+                            <option :value="subcategory.id" 
+                                    x-text="subcategory.name"
+                                    :selected="subcategory.id == {{ transaction.subcategory_id or 'null' }}"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea id="notes" 
+                              name="notes" 
+                              x-model="notes"
+                              rows="3"
+                              placeholder="Additional details about this transaction"
+                              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ transaction.notes or '' }}</textarea>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-between pt-6">
+                    <a href="/" class="text-gray-600 hover:text-gray-900 font-medium">
+                        ← Back to Dashboard
+                    </a>
+                    <div class="flex space-x-3">
+                        <button type="button" 
+                                onclick="confirmDelete()"
+                                class="px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50 font-medium">
+                            Delete
+                        </button>
+                        <button type="submit" 
+                                :disabled="!isFormValid()"
+                                :class="isFormValid() ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                                class="px-6 py-2 rounded-md font-medium transition-colors">
+                            Update Transaction
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Transaction Info -->
+    <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-800 mb-2">Transaction Info</h3>
+        <div class="text-sm text-gray-600 space-y-1">
+            <p><span class="font-medium">Created:</span> {{ transaction.created_at }}</p>
+            {% if transaction.updated_at != transaction.created_at %}
+            <p><span class="font-medium">Last Updated:</span> {{ transaction.updated_at }}</p>
+            {% endif %}
+            <p><span class="font-medium">Original Category:</span> {{ transaction.category_name }}</p>
+            {% if transaction.subcategory_name %}
+            <p><span class="font-medium">Original Subcategory:</span> {{ transaction.subcategory_name }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function editTransactionForm() {
+    return {
+        date: '{{ transaction.date }}',
+        description: '{{ transaction.description }}',
+        amount: {{ transaction.amount }},
+        categoryId: {{ transaction.category_id }},
+        subcategoryId: {{ transaction.subcategory_id or 'null' }},
+        notes: '{{ transaction.notes or '' }}',
+        subcategories: [],
+        
+        async loadSubcategories() {
+            if (this.categoryId) {
+                try {
+                    const response = await fetch(`/api/subcategories/${this.categoryId}`);
+                    this.subcategories = await response.json();
+                    // Keep current subcategory if it belongs to the new category
+                    const currentSubcategoryValid = this.subcategories.find(sc => sc.id == this.subcategoryId);
+                    if (!currentSubcategoryValid) {
+                        this.subcategoryId = null;
+                    }
+                } catch (error) {
+                    console.error('Error loading subcategories:', error);
+                    this.subcategories = [];
+                }
+            } else {
+                this.subcategories = [];
+                this.subcategoryId = null;
+            }
+        },
+        
+        init() {
+            // Load subcategories for current category
+            if (this.categoryId) {
+                this.loadSubcategories();
+            }
+        },
+        
+        isFormValid() {
+            return this.date && this.description.trim() && this.amount && this.categoryId;
+        }
+    }
+}
+
+function confirmDelete() {
+    if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/transaction/{{ transaction.id }}/delete';
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

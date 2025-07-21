@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Categories - Budget Tracker{% endblock %}
+
+{% block content %}
+<div x-data="categoryManager()" x-init="init()">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Manage Categories</h2>
+        <p class="text-gray-600">Add, edit, or remove expense categories</p>
+    </div>
+
+    <!-- Add New Category -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Category</h3>
+        <form @submit.prevent="addCategory()" class="flex gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       x-model="newCategoryName"
+                       placeholder="Enter category name..."
+                       required
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" 
+                    :disabled="!newCategoryName.trim()"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                Add Category
+            </button>
+        </form>
+        <div x-show="message" class="mt-3 p-3 rounded" 
+             :class="messageType === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'">
+            <span x-text="message"></span>
+        </div>
+    </div>
+
+    <!-- Existing Categories -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Existing Categories</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                {% for category in categories %}
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div class="flex-1">
+                        <div x-show="editingId !== {{ category.id }}">
+                            <h4 class="font-medium text-gray-900">{{ category.name }}</h4>
+                            <p class="text-sm text-gray-500">
+                                {{ category.transaction_count }} transactions, 
+                                {{ category.budget_count }} budget allocations
+                            </p>
+                        </div>
+                        <div x-show="editingId === {{ category.id }}" x-cloak>
+                            <input type="text" 
+                                   x-model="editingName"
+                                   @keyup.enter="saveEdit({{ category.id }})"
+                                   @keyup.escape="cancelEdit()"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div x-show="editingId !== {{ category.id }}">
+                            <button @click="startEdit({{ category.id }}, '{{ category.name }}')"
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                Edit
+                            </button>
+                            {% if category.transaction_count == 0 and category.budget_count == 0 %}
+                            <button @click="deleteCategory({{ category.id }}, '{{ category.name }}')"
+                                    class="text-red-600 hover:text-red-800 text-sm ml-3">
+                                Delete
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div x-show="editingId === {{ category.id }}" x-cloak class="space-x-2">
+                            <button @click="saveEdit({{ category.id }})"
+                                    class="text-green-600 hover:text-green-800 text-sm">
+                                Save
+                            </button>
+                            <button @click="cancelEdit()"
+                                    class="text-gray-600 hover:text-gray-800 text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Budget Setup -->
+    <div class="mt-6 text-center">
+        <a href="/budget-setup" class="text-blue-600 hover:text-blue-700 font-medium">
+            ← Back to Budget Setup
+        </a>
+    </div>
+</div>
+
+<script>
+function categoryManager() {
+    return {
+        newCategoryName: '',
+        editingId: null,
+        editingName: '',
+        message: '',
+        messageType: '',
+        
+        init() {
+            // Initialize component
+        },
+        
+        async addCategory() {
+            try {
+                const formData = new FormData();
+                formData.append('name', this.newCategoryName);
+                
+                const response = await fetch('/api/categories', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    this.showMessage(result.message, 'success');
+                    this.newCategoryName = '';
+                    // Reload page to show new category
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                this.showMessage('Error adding category', 'error');
+            }
+        },
+        
+        startEdit(id, name) {
+            this.editingId = id;
+            this.editingName = name;
+        },
+        
+        cancelEdit() {
+            this.editingId = null;
+            this.editingName = '';
+        },
+        
+        async saveEdit(id) {
+            try {
+                const formData = new FormData();
+                formData.append('name', this.editingName);
+                
+                const response = await fetch(`/api/categories/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    this.showMessage(result.message, 'success');
+                    this.cancelEdit();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                this.showMessage('Error updating category', 'error');
+            }
+        },
+        
+        async deleteCategory(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/categories/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    this.showMessage(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                this.showMessage('Error deleting category', 'error');
+            }
+        },
+        
+        showMessage(msg, type) {
+            this.message = msg;
+            this.messageType = type;
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
+        }
+    }
+}
+</script>
+{% endblock %}
