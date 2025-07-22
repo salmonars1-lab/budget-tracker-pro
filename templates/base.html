@@ -1,145 +1,172 @@
-<!-- Mobile Header -->
-<div x-data="navigation()" class="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-40">
-    <div class="flex items-center">
-        <span class="text-xl mr-2">💰</span>
-        <h1 class="text-lg font-bold text-gray-900">Budget Tracker</h1>
-    </div>
-    <button @click="mobileMenuOpen = !mobileMenuOpen" 
-            class="text-gray-700 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-    </button>
-</div>
-
-<!-- Mobile Menu Overlay -->
-<div x-show="mobileMenuOpen" 
-     x-transition:enter="transition ease-out duration-200"
-     x-transition:enter-start="opacity-0"
-     x-transition:enter-end="opacity-100"
-     x-transition:leave="transition ease-in duration-150"
-     x-transition:leave-start="opacity-100"
-     x-transition:leave-end="opacity-0"
-     @click="mobileMenuOpen = false"
-     class="fixed inset-0 bg-gray-600 bg-opacity-50 z-40 md:hidden"
-     x-cloak></div>
-
-<!-- Sidebar -->
-<aside x-show="mobileMenuOpen || true" 
-       :class="{'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen}"
-       class="w-64 bg-white shadow-lg fixed md:static inset-y-0 z-50 md:z-0 overflow-y-auto transform transition-transform duration-200 ease-in-out md:translate-x-0">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Budget Tracker{% endblock %}</title>
     
-    <!-- Header -->
-    <div class="p-4">
-        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <span class="text-xl mr-2">📘</span>
-            Budget Tracker
-        </h2>
-        
-        <!-- Quick Add Button -->
-        <a href="/add-transaction" 
-           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-lg flex items-center justify-center text-sm transition-colors mb-4">
-            ➕ Add Transaction
-        </a>
-    </div>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom styles -->
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
     <!-- Navigation -->
-    <div class="px-4 pb-4 flex flex-col h-full">
-        <nav class="space-y-2 flex-1">
-            
-            <!-- Transactions Section -->
-            <div x-data="{ expanded: true }">
-                <button @click="expanded = !expanded" 
-                        class="w-full text-left text-gray-600 font-semibold text-xs uppercase tracking-wide px-3 py-1 flex items-center justify-between">
-                    Transactions
-                    <svg :class="{'rotate-180': expanded}" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div x-show="expanded" x-transition class="space-y-2 mt-1">
+    <nav class="bg-white shadow-lg relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Left: Logo -->
+                <div class="flex items-center">
+                    <div class="text-xl font-bold text-gray-900 flex items-center">
+                        <span class="text-2xl mr-2">💰</span>
+                        <span class="hidden sm:inline">Budget Tracker</span>
+                        <span class="sm:hidden">Budget Tracker</span>
+                    </div>
+                </div>
+                
+                <!-- Center: Main Navigation (Desktop) -->
+                <div class="hidden md:flex space-x-8">
                     <a href="/" 
-                       class="block py-2 px-3 rounded-lg text-sm font-medium flex items-center
-                              {{ 'bg-blue-100 text-blue-700' if request.endpoint == 'index' else 'text-gray-700 hover:bg-gray-100' }}">
-                        🏠 Dashboard
+                       class="{% if request.endpoint == 'index' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 text-sm font-medium transition-colors">
+                        Dashboard
                     </a>
                     <a href="/transactions" 
-                       class="block py-2 px-3 rounded-lg text-sm font-medium flex items-center
-                              {{ 'bg-blue-100 text-blue-700' if request.endpoint == 'all_transactions' else 'text-gray-700 hover:bg-gray-100' }}">
-                        📋 All Transactions
+                       class="{% if request.endpoint == 'all_transactions' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 text-sm font-medium transition-colors">
+                        Transactions
                     </a>
-                </div>
-            </div>
-
-            <!-- Insights Section -->
-            <div x-data="{ expanded: true }">
-                <button @click="expanded = !expanded" 
-                        class="w-full text-left text-gray-600 font-semibold text-xs uppercase tracking-wide px-3 py-1 mt-4 flex items-center justify-between">
-                    Insights
-                    <svg :class="{'rotate-180': expanded}" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div x-show="expanded" x-transition class="space-y-2 mt-1">
                     <a href="/analytics" 
-                       class="block py-2 px-3 rounded-lg text-sm font-medium flex items-center
-                              {{ 'bg-blue-100 text-blue-700' if request.endpoint == 'analytics' else 'text-gray-700 hover:bg-gray-100' }}">
-                        📊 Analytics
+                       class="{% if request.endpoint == 'analytics' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 text-sm font-medium transition-colors">
+                        Analytics
                     </a>
-                </div>
-            </div>
-
-            <!-- Setup Section -->
-            <div x-data="{ expanded: true }">
-                <button @click="expanded = !expanded" 
-                        class="w-full text-left text-gray-600 font-semibold text-xs uppercase tracking-wide px-3 py-1 mt-4 flex items-center justify-between">
-                    Setup
-                    <svg :class="{'rotate-180': expanded}" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div x-show="expanded" x-transition class="space-y-2 mt-1">
                     <a href="/budget-setup" 
-                       class="block py-2 px-3 rounded-lg text-sm font-medium flex items-center
-                              {{ 'bg-blue-100 text-blue-700' if request.endpoint == 'budget_setup' else 'text-gray-700 hover:bg-gray-100' }}">
-                        🛠️ Budget Setup
-                    </a>
-                    <a href="/manage-categories" 
-                       class="block py-2 px-3 rounded-lg text-sm font-medium flex items-center
-                              {{ 'bg-blue-100 text-blue-700' if request.endpoint == 'manage_categories' else 'text-gray-700 hover:bg-gray-100' }}">
-                        🗂️ Categories
+                       class="{% if request.endpoint == 'budget_setup' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 text-sm font-medium transition-colors">
+                        Budget Setup
                     </a>
                 </div>
-            </div>
-        </nav>
-        
-        <!-- Footer -->
-        <div class="mt-6 border-t pt-4 text-xs text-gray-400">
-            <div class="px-3">
-                Version 1.03<br>
-                © Andre Salmon – HPA Labs 2025
+
+                <!-- Right: Mobile menu button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" 
+                            class="text-gray-600 hover:text-gray-900 focus:outline-none focus:text-gray-900 p-2">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Right: Desktop Hamburger Menu for Secondary Items -->
+                <div class="hidden md:block">
+                    <div class="relative">
+                        <button id="desktop-menu-button" 
+                                class="text-gray-600 hover:text-gray-900 focus:outline-none focus:text-gray-900 p-2">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Desktop Dropdown Menu -->
+                        <div id="desktop-dropdown" 
+                             class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                            <a href="/manage-categories" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                🗂️ Manage Categories
+                            </a>
+                            <div class="border-t border-gray-100"></div>
+                            <a href="#" 
+                               class="block px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+                                ⚙️ Settings
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</aside>
 
-<script>
-function navigation() {
-    return {
-        mobileMenuOpen: false,
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-50 border-t">
+                <a href="/" 
+                   class="{% if request.endpoint == 'index' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %} block px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    🏠 Dashboard
+                </a>
+                <a href="/transactions" 
+                   class="{% if request.endpoint == 'all_transactions' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %} block px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    📋 Transactions
+                </a>
+                <a href="/analytics" 
+                   class="{% if request.endpoint == 'analytics' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %} block px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    📊 Analytics
+                </a>
+                <a href="/budget-setup" 
+                   class="{% if request.endpoint == 'budget_setup' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %} block px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    🛠️ Budget Setup
+                </a>
+                <div class="border-t border-gray-200 my-2"></div>
+                <a href="/manage-categories" 
+                   class="{% if request.endpoint == 'manage_categories' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %} block px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    🗂️ Categories
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="min-h-screen">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Floating Add Transaction Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <a href="/add-transaction" 
+           class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+        </a>
+    </div>
+
+    <!-- JavaScript for Menu Toggle -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
         
-        init() {
-            // Close mobile menu when clicking outside
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Desktop dropdown toggle
+        const desktopMenuButton = document.getElementById('desktop-menu-button');
+        const desktopDropdown = document.getElementById('desktop-dropdown');
+        
+        if (desktopMenuButton && desktopDropdown) {
+            desktopMenuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                desktopDropdown.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('aside') && !e.target.closest('[data-mobile-menu-toggle]')) {
-                    this.mobileMenuOpen = false;
+                if (!desktopMenuButton.contains(e.target) && !desktopDropdown.contains(e.target)) {
+                    desktopDropdown.classList.add('hidden');
                 }
             });
             
-            // Close mobile menu on route change
-            window.addEventListener('beforeunload', () => {
-                this.mobileMenuOpen = false;
+            // Prevent dropdown from closing when clicking inside it
+            desktopDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
             });
         }
-    }
-}
-</script>
+    </script>
+</body>
+</html>
