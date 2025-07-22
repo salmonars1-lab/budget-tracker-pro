@@ -117,34 +117,53 @@
         </div>
 
         <!-- Budget vs Actual -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                Budget vs Actual - <span x-text="getCurrentPeriodName()"></span>
-            </h3>
-            {% if budget_vs_actual %}
-            <div class="relative h-64 mb-4">
-                <canvas id="budgetChart"></canvas>
-            </div>
-            <div class="space-y-2 max-h-32 overflow-y-auto">
-                {% for item in budget_vs_actual %}
-                <div class="flex justify-between text-sm border-b border-gray-100 pb-1">
-                    <span class="text-gray-600">{{ item.category }}</span>
-                    <div class="text-right">
-                        <div>{{ item.spent|currency }} / {{ item.budgeted|currency }}</div>
-                        <div class="text-xs {% if item.spent > item.budgeted %}text-red-600{% else %}text-green-600{% endif %}">
-                            {{ ((item.spent / item.budgeted * 100) if item.budgeted > 0 else 0)|round(1) }}%
+       <!-- Budget vs Actual -->
+<div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">
+        Budget vs Actual – <span x-text="getCurrentPeriodName()"></span>
+    </h3>
+
+    {% if budget_vs_actual %}
+        <div class="relative h-64 mb-4">
+            <canvas id="budgetChart"></canvas>
+        </div>
+
+        <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+            {% for item in budget_vs_actual %}
+                <div class="py-3 flex justify-between items-center">
+                    <div class="text-sm text-gray-700 font-medium">
+                        {{ item.category }}
+                    </div>
+                    <div class="text-right text-sm">
+                        <div>
+                            <span class="text-gray-900 font-semibold">{{ item.spent|currency }}</span>
+                            /
+                            <span class="text-gray-500">{{ item.budgeted|currency }}</span>
+                        </div>
+                        <div class="text-xs mt-1 font-medium 
+                            {% if item.spent|float > item.budgeted|float %}
+                                text-red-600
+                            {% else %}
+                                text-green-600
+                            {% endif %}
+                        ">
+                            {{ ((item.spent|float / item.budgeted|float * 100) if item.budgeted|float > 0 else 0) | round(1) }}%
                         </div>
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="text-center text-gray-500 py-8">
-                <div class="text-4xl mb-4">📋</div>
-                <p class="mb-2">No budget data available.</p>
-                <a href="/budget-setup" class="text-blue-600 hover:text-blue-700 font-medium">Set up your budget</a>
-            </div>
-            {% endif %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center text-gray-500 py-8">
+            <div class="text-4xl mb-4">📋</div>
+            <p class="mb-2">No budget data available.</p>
+            <a href="/budget-setup" class="text-blue-600 hover:text-blue-700 font-medium">
+                Set up your budget
+            </a>
+        </div>
+    {% endif %}
+</div>
+
         </div>
 
         <!-- Monthly Spending Trends -->
