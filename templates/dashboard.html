@@ -4,49 +4,49 @@
 
 {% block content %}
 <div x-data="dashboard()" x-init="init()">
-    <!-- Header -->
+    <!-- Enhanced Header with Better Layout -->
     <div class="mb-8">
-        <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center justify-between flex-wrap gap-6">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Budget Dashboard</h2>
-                <p class="text-gray-600">Track your spending and savings for this month</p>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Budget Dashboard</h2>
+                <p class="text-gray-600">Track your spending and savings for {{ current_month_name }}</p>
             </div>
             
-            <!-- Date & Payday Panel -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 min-w-80">
-                <div class="grid grid-cols-2 gap-4">
+            <!-- Enhanced Date & Payday Panel -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 min-w-80 shadow-sm">
+                <div class="grid grid-cols-2 gap-6">
                     <!-- Current Date Info -->
                     <div>
-                        <div class="text-sm font-medium text-blue-800">Today</div>
-                        <div class="text-lg font-bold text-blue-900" x-text="getCurrentDate()"></div>
+                        <div class="text-sm font-medium text-blue-800 mb-1">Today</div>
+                        <div class="text-lg font-bold text-blue-900 mb-1" x-text="getCurrentDate()"></div>
                         <div class="text-sm text-blue-600" x-text="getCurrentWeekInfo()"></div>
                     </div>
                     
                     <!-- Payday Tracker -->
                     <div>
-                        <div class="text-sm font-medium text-green-800">Payday (25th)</div>
-                        <div class="text-lg font-bold" :class="getPaydayTextColor()" x-text="getPaydayInfo()"></div>
+                        <div class="text-sm font-medium text-green-800 mb-1">Payday (25th)</div>
+                        <div class="text-lg font-bold mb-2" :class="getPaydayTextColor()" x-text="getPaydayInfo()"></div>
                         
-                        <!-- Payday Progress Bar -->
-                        <div class="mt-2">
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="h-2 rounded-full transition-all duration-300" 
+                        <!-- Enhanced Progress Bar -->
+                        <div class="space-y-2">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all duration-500 ease-out" 
                                      :class="getPaydayBarColor()"
                                      :style="'width: ' + getPaydayProgress() + '%'"></div>
                             </div>
-                            <div class="text-xs text-gray-600 mt-1" x-text="getPaydayProgressText()"></div>
+                            <div class="text-xs text-gray-600" x-text="getPaydayProgressText()"></div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Month Progress -->
-                <div class="mt-3 pt-3 border-t border-blue-200">
-                    <div class="flex items-center justify-between text-sm">
+                <div class="mt-4 pt-4 border-t border-blue-200">
+                    <div class="flex items-center justify-between text-sm mb-2">
                         <span class="text-blue-800 font-medium">Month Progress</span>
-                        <span class="text-blue-600" x-text="getMonthProgress() + '% complete'"></span>
+                        <span class="text-blue-600 font-medium" x-text="getMonthProgress() + '% complete'"></span>
                     </div>
-                    <div class="mt-1 w-full bg-blue-100 rounded-full h-2">
-                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                    <div class="w-full bg-blue-100 rounded-full h-2">
+                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out" 
                              :style="'width: ' + getMonthProgress() + '%'"></div>
                     </div>
                 </div>
@@ -54,19 +54,25 @@
         </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <div class="mb-6">
-        <div class="border-b border-gray-200">
-            <nav class="-mb-px flex space-x-8">
+    <!-- Enhanced Tab Navigation -->
+    <div class="mb-8">
+        <div class="border-b border-gray-200 bg-white rounded-t-lg">
+            <nav class="-mb-px flex space-x-8 px-6">
                 <button @click="activeTab = 'budget'" 
-                        :class="activeTab === 'budget' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-                    Monthly Budget
+                        :class="activeTab === 'budget' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all rounded-t-md">
+                    <span class="flex items-center">
+                        <span class="mr-2">💰</span>
+                        Monthly Budget
+                    </span>
                 </button>
                 <button @click="activeTab = 'sinking'" 
-                        :class="activeTab === 'sinking' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
-                    Sinking Funds
+                        :class="activeTab === 'sinking' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all rounded-t-md">
+                    <span class="flex items-center">
+                        <span class="mr-2">🎯</span>
+                        Sinking Funds
+                    </span>
                 </button>
             </nav>
         </div>
@@ -74,46 +80,53 @@
 
     <!-- Monthly Budget Tab -->
     <div x-show="activeTab === 'budget'" x-cloak>
-        <!-- Quick Stats -->
+        <!-- Enhanced Quick Stats with Better Icons -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span class="text-blue-600 text-sm font-medium">$</span>
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Budgeted</p>
-                        <p class="text-2xl font-semibold text-gray-900" x-text="formatCurrency(totalBudgeted)"></p>
+                        <p class="text-sm font-medium text-gray-500 mb-1">Total Budgeted</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(totalBudgeted)"></p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                            <span class="text-red-600 text-sm font-medium">↓</span>
+                        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                            </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Spent</p>
-                        <p class="text-2xl font-semibold text-gray-900" x-text="formatCurrency(totalSpent)"></p>
+                        <p class="text-sm font-medium text-gray-500 mb-1">Total Spent</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(totalSpent)"></p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <span class="text-green-600 text-sm font-medium">↑</span>
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+                             :class="(totalBudgeted - totalSpent) >= 0 ? 'bg-green-100' : 'bg-red-100'">
+                            <svg class="w-6 h-6" :class="(totalBudgeted - totalSpent) >= 0 ? 'text-green-600' : 'text-red-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 7h2m-1 7h-4m-3 0V5a2 2 0 012-2h6a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                            </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Remaining</p>
-                        <p class="text-2xl font-semibold" 
+                        <p class="text-sm font-medium text-gray-500 mb-1">Remaining</p>
+                        <p class="text-2xl font-bold" 
                            x-text="formatCurrency(totalBudgeted - totalSpent)"
                            :class="(totalBudgeted - totalSpent) >= 0 ? 'text-green-600' : 'text-red-600'"></p>
                     </div>
@@ -121,34 +134,49 @@
             </div>
         </div>
 
-        <!-- Budget Categories -->
-        <div class="bg-white rounded-lg shadow mb-8">
+        <!-- Enhanced Budget Categories -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Budget Categories</h3>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">📊</span>
+                        Budget Categories
+                    </h3>
+                    <div class="text-sm text-gray-500">
+                        {{ dashboard_data|length }} categories
+                    </div>
+                </div>
             </div>
             <div class="p-6">
-                <div class="space-y-6">
+                <div class="grid gap-4">
                     {% for item in dashboard_data %}
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="text-sm font-medium text-gray-900">{{ item.category_name }}</h4>
-                                <div class="text-sm text-gray-500">
-                                    <span class="font-medium">{{ item.spent|currency }}</span>
-                                    / {{ item.budgeted|currency }}
-                                </div>
+                    {% set percentage = (item.spent / item.budgeted * 100) if item.budgeted > 0 else 0 %}
+                    <div class="p-4 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-medium text-gray-900">{{ item.category_name }}</h4>
+                            <div class="text-sm text-gray-500">
+                                <span class="font-medium">{{ item.spent|currency }}</span>
+                                <span class="text-gray-400"> / </span>
+                                <span>{{ item.budgeted|currency }}</span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                {% set percentage = (item.spent / item.budgeted * 100) if item.budgeted > 0 else 0 %}
-                                <div class="h-2 rounded-full {% if percentage > 100 %}bg-red-500{% elif percentage > 80 %}bg-yellow-500{% else %}bg-green-500{% endif %}" 
-                                     style="width: {{ [percentage, 100]|min }}%"></div>
-                            </div>
-                            <div class="flex justify-between mt-1 text-xs text-gray-500">
-                                <span>{{ "%.1f"|format(percentage) }}% used</span>
-                                <span class="{% if (item.budgeted - item.spent) >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                    {{ (item.budgeted - item.spent)|currency }} remaining
-                                </span>
-                            </div>
+                        </div>
+                        
+                        <!-- Enhanced Progress Bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                            <div class="h-2.5 rounded-full transition-all duration-500 ease-out
+                                       {% if percentage > 100 %}bg-red-500
+                                       {% elif percentage > 80 %}bg-yellow-500
+                                       {% else %}bg-green-500{% endif %}" 
+                                 style="width: {{ [percentage, 100]|min }}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-xs">
+                            <span class="{% if percentage > 100 %}text-red-600{% elif percentage > 80 %}text-yellow-600{% else %}text-green-600{% endif %} font-medium">
+                                {{ "%.1f"|format(percentage) }}% used
+                            </span>
+                            <span class="{% if (item.budgeted - item.spent) >= 0 %}text-green-600{% else %}text-red-600{% endif %} font-medium">
+                                {{ (item.budgeted - item.spent)|currency }} remaining
+                            </span>
                         </div>
                     </div>
                     {% endfor %}
@@ -156,46 +184,58 @@
             </div>
         </div>
 
-        <!-- Recent Transactions -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Recent Transactions</h3>
-                <div class="flex space-x-3">
-                    <button @click="groupedView = !groupedView" 
-                            :class="groupedView ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
-                            class="px-3 py-1 rounded-full text-sm font-medium hover:bg-blue-200">
-                        <span x-text="groupedView ? '📊 Grouped' : '📋 List'"></span>
-                    </button>
-                    <a href="/transactions" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        View All
-                    </a>
-                    <a href="/add-transaction" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        Add New →
-                    </a>
+        <!-- Enhanced Recent Transactions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">📝</span>
+                        Recent Transactions
+                    </h3>
+                    <div class="flex items-center space-x-3">
+                        <button @click="groupedView = !groupedView" 
+                                :class="groupedView ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-600 border-gray-200'"
+                                class="px-3 py-1 rounded-md text-sm font-medium border transition-colors">
+                            <span x-text="groupedView ? '📊 Grouped' : '📋 List'"></span>
+                        </button>
+                        <a href="/transactions" 
+                           class="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">
+                            View All
+                        </a>
+                        <a href="/add-transaction" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors">
+                            Add New
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <!-- Grouped View -->
+            <!-- Enhanced Grouped View -->
             <div x-show="groupedView" x-cloak class="p-6">
                 {% if recent_transactions %}
                 {% set transactions_by_category = recent_transactions | groupby('category_name') %}
                 <div class="space-y-4">
                     {% for category, transactions in transactions_by_category %}
-                    <div class="border border-gray-200 rounded-lg">
-                        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer"
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
                              @click="toggleCategory('{{ loop.index }}')">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-3 h-3 rounded-full" style="background-color: {{ ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'][loop.index0 % 8] }}"></div>
-                                <h4 class="font-medium text-gray-900">{{ category }}</h4>
-                                <span class="text-sm text-gray-500">({{ transactions|list|length }} transactions)</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="font-medium">{{ transactions|sum(attribute='amount')|currency }}</span>
-                                <svg class="w-4 h-4 text-gray-400 transition-transform" 
-                                     :class="openCategories.includes('{{ loop.index }}') ? 'rotate-180' : ''"
-                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-3 h-3 rounded-full" 
+                                         style="background-color: {{ ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'][loop.index0 % 8] }}"></div>
+                                    <h4 class="font-medium text-gray-900">{{ category }}</h4>
+                                    <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                                        {{ transactions|list|length }} transactions
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-semibold text-gray-900">{{ transactions|sum(attribute='amount')|currency }}</span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform" 
+                                         :class="openCategories.includes('{{ loop.index }}') ? 'rotate-180' : ''"
+                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                         <div x-show="openCategories.includes('{{ loop.index }}')" 
@@ -204,17 +244,18 @@
                              x-transition:enter-end="opacity-100 transform scale-100">
                             <div class="p-4 space-y-3">
                                 {% for transaction in transactions %}
-                                <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                                <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                                     <div class="flex-1">
                                         <div class="flex items-center space-x-3">
+                                            <!-- Enhanced Transaction Type Badge -->
                                             {% if transaction.sinking_fund_name %}
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                       {% if transaction.transaction_type == 'contribution' %}bg-green-100 text-green-700
-                                                       {% else %}bg-red-100 text-red-700{% endif %}">
+                                                       {% if transaction.transaction_type == 'contribution' %}bg-green-100 text-green-700 border border-green-200
+                                                       {% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
                                                 💰 {{ transaction.transaction_type|title }}
                                             </span>
                                             {% else %}
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
                                                 💳 Expense
                                             </span>
                                             {% endif %}
@@ -228,16 +269,16 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center space-x-3">
-                                        <span class="font-medium text-gray-900">{{ transaction.amount|currency }}</span>
+                                        <span class="font-semibold text-gray-900">{{ transaction.amount|currency }}</span>
                                         <div class="flex space-x-1">
                                             <a href="/transaction/{{ transaction.id }}/edit" 
-                                               class="text-blue-600 hover:text-blue-900 text-xs p-1">
+                                               class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
                                             </a>
                                             <button onclick="confirmDelete({{ transaction.id }})" 
-                                                    class="text-red-600 hover:text-red-900 text-xs p-1">
+                                                    class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                 </svg>
@@ -252,15 +293,20 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="text-center text-gray-500 py-8">
+                <div class="text-center text-gray-500 py-12">
                     <div class="text-4xl mb-4">📝</div>
-                    <p>No transactions yet.</p>
-                    <a href="/add-transaction" class="text-blue-600 hover:text-blue-700 font-medium">Add your first transaction</a>
+                    <p class="text-lg font-medium mb-2">No transactions yet</p>
+                    <p class="text-sm mb-4">Start tracking your expenses to see them here</p>
+                    <a href="/add-transaction" 
+                       class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                        <span class="mr-2">➕</span>
+                        Add your first transaction
+                    </a>
                 </div>
                 {% endif %}
             </div>
 
-            <!-- List View (Original Table) -->
+            <!-- Enhanced List View -->
             <div x-show="!groupedView" x-cloak class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -274,35 +320,39 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for transaction in recent_transactions %}
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ transaction.date }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">
-                                <div>{{ transaction.description }}</div>
+                                <div class="font-medium">{{ transaction.description }}</div>
                                 {% if transaction.subcategory_name %}
                                 <div class="text-xs text-gray-500">{{ transaction.subcategory_name }}</div>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ transaction.category_name }}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ transaction.category_name }}
+                                </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
                                 {{ transaction.amount|currency }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end space-x-2">
                                     <a href="/transaction/{{ transaction.id }}/edit" 
-                                       class="text-blue-600 hover:text-blue-900 text-xs">Edit</a>
+                                       class="text-blue-600 hover:text-blue-900 text-xs font-medium">Edit</a>
                                     <button onclick="confirmDelete({{ transaction.id }})" 
-                                            class="text-red-600 hover:text-red-900 text-xs">Delete</button>
+                                            class="text-red-600 hover:text-red-900 text-xs font-medium">Delete</button>
                                 </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                No transactions yet. <a href="/add-transaction" class="text-blue-600 hover:text-blue-700">Add your first transaction</a>
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <div class="text-4xl mb-4">📝</div>
+                                <p class="mb-4">No transactions yet</p>
+                                <a href="/add-transaction" class="text-blue-600 hover:text-blue-700 font-medium">Add your first transaction</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -312,108 +362,129 @@
         </div>
     </div>
 
-    <!-- Sinking Funds Tab -->
+    <!-- Enhanced Sinking Funds Tab -->
     <div x-show="activeTab === 'sinking'" x-cloak>
-        <!-- Sinking Funds Header with Auto-Contribute -->
-        <div class="flex items-center justify-between mb-6">
+        <!-- Enhanced Header with Auto-Contribute -->
+        <div class="flex items-center justify-between mb-8">
             <div>
-                <h3 class="text-lg font-medium text-gray-900">Sinking Funds - {{ current_month_name }}</h3>
-                <p class="text-sm text-gray-600">Long-term savings goals and emergency funds</p>
+                <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <span class="mr-2">🎯</span>
+                    Sinking Funds
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">Long-term savings goals and emergency funds for {{ current_month_name }}</p>
             </div>
             {% if show_contribute_button %}
-            <div>
+            <div class="text-right">
                 <form method="POST" action="/contribute-monthly-allocations" class="inline">
                     <button type="submit" 
                             onclick="return confirm('This will contribute the monthly allocation amount to all sinking funds and record it as spending in your budget. Continue?')"
-                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center space-x-2">
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 shadow-sm transition-colors">
                         <span>💰</span>
                         <span>Contribute Monthly Allocations</span>
                     </button>
                 </form>
-                <p class="text-xs text-gray-500 mt-1">Total: {{ sinking_funds|sum(attribute='monthly_allocation')|currency }}</p>
+                <p class="text-xs text-gray-500 mt-2">Total: {{ sinking_funds|sum(attribute='monthly_allocation')|currency }}</p>
             </div>
             {% else %}
-            <div class="text-sm text-gray-500">
-                <div class="flex items-center space-x-2">
+            <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                <div class="flex items-center space-x-2 text-sm text-green-700">
                     <span>✅</span>
-                    <span>Monthly contributions completed</span>
+                    <span class="font-medium">Monthly contributions completed</span>
                 </div>
             </div>
             {% endif %}
         </div>
-        <!-- Sinking Funds Overview -->
+
+        <!-- Enhanced Overview Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <span class="text-green-600 text-sm font-medium">💰</span>
+                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Saved</p>
-                        <p class="text-2xl font-semibold text-gray-900" x-text="formatCurrency(totalSinkingFunds)"></p>
+                        <p class="text-sm font-medium text-gray-500 mb-1">Total Saved</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(totalSinkingFunds)"></p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span class="text-blue-600 text-sm font-medium">🎯</span>
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                            </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Targets</p>
-                        <p class="text-2xl font-semibold text-gray-900" x-text="formatCurrency(totalTargets)"></p>
+                        <p class="text-sm font-medium text-gray-500 mb-1">Total Targets</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(totalTargets)"></p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Sinking Funds List -->
-        <div class="space-y-6">
+        <!-- Enhanced Sinking Funds Grid -->
+        <div class="grid gap-6">
             {% for fund in sinking_funds %}
-            <div class="bg-white rounded-lg shadow">
+            {% set progress = (fund.current_balance / fund.target_amount * 100) if fund.target_amount > 0 else 0 %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">{{ fund.name }}</h3>
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <span class="mr-2">💰</span>
+                            {{ fund.name }}
+                        </h3>
                         <div class="flex space-x-2">
                             <button @click="showContributionModal({{ fund.id }}, '{{ fund.name }}')" 
-                                    class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                    class="bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-lg text-sm font-medium border border-green-200 transition-colors">
                                 + Add
                             </button>
                             <button @click="showWithdrawalModal({{ fund.id }}, '{{ fund.name }}', {{ fund.current_balance }})" 
-                                    class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                    class="bg-red-50 text-red-700 hover:bg-red-100 px-3 py-2 rounded-lg text-sm font-medium border border-red-200 transition-colors">
                                 - Withdraw
                             </button>
                         </div>
                     </div>
                     
-                    <div class="space-y-3">
-                        <!-- Progress Bar -->
+                    <!-- Enhanced Progress Section -->
+                    <div class="space-y-4">
+                        <!-- Progress Bar with Animation -->
                         <div>
-                            {% set progress = (fund.current_balance / fund.target_amount * 100) if fund.target_amount > 0 else 0 %}
-                            <div class="flex justify-between text-sm text-gray-600 mb-1">
-                                <span>{{ fund.current_balance|currency }} saved</span>
+                            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                <span class="font-medium">{{ fund.current_balance|currency }} saved</span>
                                 <span>Target: {{ fund.target_amount|currency }}</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-3">
-                                <div class="bg-green-500 h-3 rounded-full" style="width: {{ [progress, 100]|min }}%"></div>
+                                <div class="bg-green-500 h-3 rounded-full transition-all duration-1000 ease-out" 
+                                     style="width: {{ [progress, 100]|min }}%"></div>
                             </div>
-                            <div class="text-xs text-gray-500 mt-1">
-                                {{ "%.1f"|format(progress) }}% complete
+                            <div class="flex justify-between text-xs text-gray-500 mt-2">
+                                <span class="font-medium {% if progress >= 100 %}text-green-600{% elif progress >= 75 %}text-blue-600{% elif progress >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                    {{ "%.1f"|format(progress) }}% complete
+                                </span>
                                 {% if fund.target_amount > fund.current_balance %}
-                                • {{ (fund.target_amount - fund.current_balance)|currency }} remaining
+                                <span class="text-gray-600">
+                                    {{ (fund.target_amount - fund.current_balance)|currency }} remaining
+                                </span>
+                                {% else %}
+                                <span class="text-green-600 font-medium">🎯 Goal achieved!</span>
                                 {% endif %}
                             </div>
                         </div>
                         
-                        <!-- Monthly Allocation -->
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-500">Monthly Allocation:</span>
-                            <span class="font-medium">{{ fund.monthly_allocation|currency }}</span>
+                        <!-- Monthly Allocation Info -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Monthly Allocation:</span>
+                                <span class="font-semibold text-gray-900">{{ fund.monthly_allocation|currency }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -422,45 +493,60 @@
         </div>
     </div>
 
-    <!-- Sinking Fund Modals -->
- <div x-show="showModal" x-cloak style="display: none;" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="modalTitle"></h3>
+    <!-- Enhanced Modal -->
+    <div x-show="showModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak 
+         class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform scale-100"
+             x-transition:leave-end="opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6" x-text="modalTitle"></h3>
                 <form :action="modalAction" method="POST">
                     <input type="hidden" name="transaction_type" :value="modalType">
                     
-                    <div class="space-y-4">
+                    <div class="space-y-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Amount</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                <span class="absolute left-3 top-2 text-gray-500">JMD $</span>
                                 <input type="number" name="amount" step="0.01" min="0" required
-                                       class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                       class="w-full border border-gray-300 rounded-lg pl-14 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                             </div>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <input type="text" name="description" :placeholder="modalType === 'contribution' ? 'Monthly contribution' : 'Withdrawal for...'" 
-                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <input type="text" name="description" 
+                                   :placeholder="modalType === 'contribution' ? 'Monthly contribution' : 'Withdrawal for...'" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
                             <input type="date" name="date" :value="new Date().toISOString().split('T')[0]"
-                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                         </div>
                     </div>
                     
-                    <div class="flex justify-end space-x-3 mt-6">
+                    <div class="flex justify-end space-x-3 mt-8">
                         <button type="button" @click="showModal = false" 
-                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
                             Cancel
                         </button>
                         <button type="submit" 
                                 :class="modalType === 'contribution' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
-                                class="px-4 py-2 text-white rounded-md">
+                                class="px-6 py-2 text-white rounded-lg font-medium transition-colors">
                             <span x-text="modalType === 'contribution' ? 'Add Contribution' : 'Withdraw'"></span>
                         </button>
                     </div>
@@ -487,37 +573,36 @@ function dashboard() {
         currentDate: new Date(),
         
         init() {
-            const self = this;
-            setInterval(function() {
-                self.currentDate = new Date();
+            // Update current date every minute
+            setInterval(() => {
+                this.currentDate = new Date();
             }, 60000);
         },
         
         getCurrentDate() {
-            const options = { 
+            return this.currentDate.toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-            };
-            return this.currentDate.toLocaleDateString('en-US', options);
+            });
         },
         
         getCurrentWeekInfo() {
             const dayOfWeek = this.currentDate.getDay();
             const daysIntoWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
             const weekOfMonth = Math.ceil(this.currentDate.getDate() / 7);
-            return 'Week ' + weekOfMonth + ' • Day ' + daysIntoWeek + ' of 7';
+            return `Week ${weekOfMonth} • Day ${daysIntoWeek} of 7`;
         },
         
         getPaydayInfo() {
             const today = this.currentDate.getDate();
             
-            if (today === 25) {
-                return "Payday Today! 🎉";
-            } else if (today < 25) {
+            if (today === 25) return "Payday Today! 🎉";
+            
+            if (today < 25) {
                 const daysUntil = 25 - today;
-                return daysUntil + (daysUntil > 1 ? ' days' : ' day') + ' to go';
+                return `${daysUntil} day${daysUntil > 1 ? 's' : ''} to go`;
             } else {
                 const currentMonth = this.currentDate.getMonth();
                 const currentYear = this.currentDate.getFullYear();
@@ -525,7 +610,7 @@ function dashboard() {
                 const now = new Date(currentYear, currentMonth, today);
                 const timeDiff = nextPayday.getTime() - now.getTime();
                 const daysUntil = Math.ceil(timeDiff / (1000 * 3600 * 24));
-                return daysUntil + (daysUntil > 1 ? ' days' : ' day') + ' to go';
+                return `${daysUntil} day${daysUntil > 1 ? 's' : ''} to go`;
             }
         },
         
@@ -549,8 +634,8 @@ function dashboard() {
         getPaydayProgressText() {
             const today = this.currentDate.getDate();
             if (today === 25) return "It's payday! 💰";
-            if (today < 25) return Math.round((today / 25) * 100) + '% through pay period';
-            return this.getPaydayProgress() + '% through current cycle';
+            if (today < 25) return `${Math.round((today / 25) * 100)}% through pay period`;
+            return `${this.getPaydayProgress()}% through current cycle`;
         },
         
         getPaydayTextColor() {
@@ -586,9 +671,7 @@ function dashboard() {
         toggleCategory(categoryIndex) {
             const index = categoryIndex.toString();
             if (this.openCategories.includes(index)) {
-                this.openCategories = this.openCategories.filter(function(cat) {
-                    return cat !== index;
-                });
+                this.openCategories = this.openCategories.filter(cat => cat !== index);
             } else {
                 this.openCategories.push(index);
             }
@@ -603,8 +686,8 @@ function dashboard() {
         
         showContributionModal(fundId, fundName) {
             this.modalType = 'contribution';
-            this.modalTitle = 'Add to ' + fundName;
-            this.modalAction = '/sinking-fund/' + fundId + '/transaction';
+            this.modalTitle = `Add to ${fundName}`;
+            this.modalAction = `/sinking-fund/${fundId}/transaction`;
             this.showModal = true;
         },
         
@@ -614,8 +697,8 @@ function dashboard() {
                 return;
             }
             this.modalType = 'withdrawal';
-            this.modalTitle = 'Withdraw from ' + fundName;
-            this.modalAction = '/sinking-fund/' + fundId + '/transaction';
+            this.modalTitle = `Withdraw from ${fundName}`;
+            this.modalAction = `/sinking-fund/${fundId}/transaction`;
             this.showModal = true;
         }
     };
@@ -625,7 +708,7 @@ function confirmDelete(transactionId) {
     if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '/transaction/' + transactionId + '/delete';
+        form.action = `/transaction/${transactionId}/delete`;
         document.body.appendChild(form);
         form.submit();
     }
