@@ -291,24 +291,39 @@ def analytics():
             ORDER BY total_spent DESC
         ''', (f'{current_month:02d}', str(current_year))).fetchall()
         
-        # Budget vs Actual data (FIXED - handle type conversion)
-        budget_vs_actual = conn.execute('''
+        # Budget vs Actual - Handle data type issues
+        budget_raw = conn.execute('''
             SELECT 
                 c.name as category_name,
-                COALESCE(CAST(ba.budgeted_amount AS REAL), 0) as budgeted,
-                COALESCE(SUM(CAST(t.amount AS REAL)), 0) as spent
-            FROM categories c
-            LEFT JOIN budget_allocations ba ON c.id = ba.category_id AND ba.budget_period_id = ?
+                ba.budgeted_amount,
+                SUM(t.amount) as spent_total
+            FROM budget_allocations ba
+            JOIN categories c ON ba.category_id = c.id
             LEFT JOIN transactions t ON c.id = t.category_id 
                 AND strftime('%Y', t.date) = ? 
                 AND strftime('%m', t.date) = ?
                 AND t.sinking_fund_id IS NULL
-            WHERE CAST(ba.budgeted_amount AS REAL) > 0
+            WHERE ba.budget_period_id = ?
             GROUP BY c.id, c.name, ba.budgeted_amount
             ORDER BY c.name
-        ''', (budget_period_id, str(current_year), f'{current_month:02d}')).fetchall()
+        ''', (str(current_year), f'{current_month:02d}', budget_period_id)).fetchall()
         
-        # Sinking fund progress (existing - works fine)
+        # Convert to proper data types in Python
+        budget_vs_actual = []
+        for row in budget_raw:
+            try:
+                budgeted = float(row['budgeted_amount']) if row['budgeted_amount'] else 0
+                spent = float(row['spent_total']) if row['spent_total'] else 0
+                budget_vs_actual.append({
+                    'category_name': row['category_name'],
+                    'budgeted': budgeted,
+                    'spent': spent
+                })
+            except (ValueError, TypeError):
+                # Skip rows with bad data
+                continue
+        
+        # Sinking fund progress (existing)
         sinking_fund_progress = conn.execute('''
             SELECT 
                 sf.name,
@@ -335,8 +350,9 @@ def analytics():
                              current_month=current_month,
                              current_year=current_year,
                              current_month_name=now.strftime('%B %Y'))
+                             
     except Exception as e:
-        return f"Analytics Error: {str(e)}"
+        return f"Analytics Error: {str(e)} | Debug: Check budget_period_id={budget_period_id if 'budget_period_id' in locals() else 'Not set'}"
 
 @app.route('/debug-routes')
 def debug_routes():
