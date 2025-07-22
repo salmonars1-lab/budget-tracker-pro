@@ -303,7 +303,7 @@ def analytics():
         if budget_period:
             budget_period_id = budget_period['id']
             
-            # Get budget vs actual data
+            # Get budget vs actual data (removed HAVING clause to avoid type error)
             budget_raw_data = conn.execute('''
                 SELECT 
                     c.name as category,
@@ -316,7 +316,6 @@ def analytics():
                     AND strftime('%Y', t.date) = ?
                 WHERE ba.budget_period_id = ?
                 GROUP BY c.name, ba.budgeted_amount
-                HAVING ba.budgeted_amount > 0
                 ORDER BY c.name
             ''', (f'{current_month:02d}', str(current_year), budget_period_id)).fetchall()
             
