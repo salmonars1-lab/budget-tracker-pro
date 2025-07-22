@@ -273,7 +273,10 @@ def analytics():
         current_month = now.month
         current_year = now.year
         
-        # Category spending breakdown
+        # Get current budget period
+        budget_period_id = ensure_current_budget_period()
+        
+        # Category spending breakdown (existing - works fine)
         category_spending = conn.execute('''
             SELECT 
                 c.name as category,
@@ -288,7 +291,24 @@ def analytics():
             ORDER BY total_spent DESC
         ''', (f'{current_month:02d}', str(current_year))).fetchall()
         
-        # Sinking fund progress (simplified to avoid the error)
+        # Budget vs Actual data (NEW - this was missing!)
+        budget_vs_actual = conn.execute('''
+            SELECT 
+                c.name as category_name,
+                COALESCE(ba.budgeted_amount, 0) as budgeted,
+                COALESCE(SUM(t.amount), 0) as spent
+            FROM categories c
+            LEFT JOIN budget_allocations ba ON c.id = ba.category_id AND ba.budget_period_id = ?
+            LEFT JOIN transactions t ON c.id = t.category_id 
+                AND strftime('%Y', t.date) = ? 
+                AND strftime('%m', t.date) = ?
+                AND t.sinking_fund_id IS NULL
+            WHERE ba.budgeted_amount > 0
+            GROUP BY c.id, c.name, ba.budgeted_amount
+            ORDER BY c.name
+        ''', (budget_period_id, str(current_year), f'{current_month:02d}')).fetchall()
+        
+        # Sinking fund progress (existing - works fine)
         sinking_fund_progress = conn.execute('''
             SELECT 
                 sf.name,
@@ -309,8 +329,11 @@ def analytics():
         return render_template('analytics.html',
                              category_spending=category_spending,
                              monthly_trends=[],
-                             budget_vs_actual=[],
+                             budget_vs_actual=budget_vs_actual,  # Now actually has data!
+                             budget_data=budget_vs_actual,      # Add this for the debug template
                              sinking_fund_progress=sinking_fund_progress,
+                             current_month=current_month,        # Add this for debug
+                             current_year=current_year,          # Add this for debug
                              current_month_name=now.strftime('%B %Y'))
     except Exception as e:
         return f"Analytics Error: {str(e)}"
