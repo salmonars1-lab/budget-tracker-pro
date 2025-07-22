@@ -420,6 +420,128 @@ def debug_budget_data():
     except Exception as e:
         return f"Debug error: {str(e)}"
 
+# Add this temporary debug route to your app.py to see what's happening
+
+@app.route('/debug-detailed')
+def debug_detailed():
+    """Detailed debugging to find why budget vs actual shows no data"""
+    current_date = datetime.now()
+    current_month = current_date.month
+    current_year = current_date.year
+    
+    try:
+        conn = sqlite3.connect('budget_tracker.db', timeout=30)
+        conn.execute('PRAGMA journal_mode=WAL')
+        
+        debug_info = []
+        debug_info.append(f"<h2>Debugging Budget vs Actual for {current_month}/{current_year}</h2>")
+        
+        # 1. Check if budget_periods exists for current month
+        debug_info.append("<h3>1. Budget Periods Check:</h3>")
+        periods_cursor = conn.execute('''
+            SELECT id, month, year FROM budget_periods 
+            WHERE month = ? AND year = ?
+        ''', (current_month, current_year))
+        periods = periods_cursor.fetchall()
+        
+        if periods:
+            period_id = periods[0][0]
+            debug_info.append(f"✓ Found budget period: ID {period_id} for {current_month}/{current_year}")
+        else:
+            debug_info.append(f"✗ No budget period found for {current_month}/{current_year}")
+            # Check what periods DO exist
+            all_periods_cursor = conn.execute('SELECT id, month, year FROM budget_periods ORDER BY year DESC, month DESC LIMIT 5')
+            all_periods = all_periods_cursor.fetchall()
+            debug_info.append(f"Available periods: {all_periods}")
+            
+        # 2. Check budget_allocations for current period
+        debug_info.append("<h3>2. Budget Allocations Check:</h3>")
+        if periods:
+            allocations_cursor = conn.execute('''
+                SELECT ba.id, c.name, ba.budgeted_amount, typeof(ba.budgeted_amount)
+                FROM budget_allocations ba
+                JOIN categories c ON ba.category_id = c.id
+                WHERE ba.budget_period_id = ?
+            ''', (period_id,))
+            allocations = allocations_cursor.fetchall()
+            
+            if allocations:
+                debug_info.append(f"✓ Found {len(allocations)} budget allocations:")
+                for alloc in allocations:
+                    debug_info.append(f"  - {alloc[1]}: {alloc[2]} (type: {alloc[3]})")
+            else:
+                debug_info.append("✗ No budget allocations found for this period")
+        
+        # 3. Check transactions for current month
+        debug_info.append("<h3>3. Transactions Check:</h3>")
+        trans_cursor = conn.execute('''
+            SELECT t.id, t.description, t.amount, c.name, t.date
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE strftime('%m', t.date) = ? AND strftime('%Y', t.date) = ?
+            LIMIT 10
+        ''', (str(current_month).zfill(2), str(current_year)))
+        transactions = trans_cursor.fetchall()
+        
+        if transactions:
+            debug_info.append(f"✓ Found {len(transactions)} transactions this month:")
+            for trans in transactions[:5]:  # Show first 5
+                debug_info.append(f"  - {trans[1]}: ${trans[2]} ({trans[3]}) on {trans[4]}")
+        else:
+            debug_info.append("✗ No transactions found for current month")
+            
+        # 4. Test the exact query from analytics
+        debug_info.append("<h3>4. Testing Analytics Query:</h3>")
+        try:
+            analytics_cursor = conn.execute('''
+                SELECT 
+                    c.name as category_name,
+                    ba.budgeted_amount,
+                    COALESCE(SUM(t.amount), 0) as actual_spent
+                FROM budget_allocations ba
+                JOIN categories c ON ba.category_id = c.id
+                JOIN budget_periods bp ON ba.budget_period_id = bp.id
+                LEFT JOIN transactions t ON t.category_id = ba.category_id 
+                    AND strftime('%m', t.date) = printf('%02d', bp.month)
+                    AND strftime('%Y', t.date) = CAST(bp.year AS TEXT)
+                WHERE bp.month = ? AND bp.year = ?
+                GROUP BY c.name, ba.budgeted_amount
+            ''', (current_month, current_year))
+            
+            analytics_results = analytics_cursor.fetchall()
+            
+            if analytics_results:
+                debug_info.append(f"✓ Analytics query returned {len(analytics_results)} results:")
+                for result in analytics_results:
+                    debug_info.append(f"  - {result[0]}: Budget ${result[1]}, Spent ${result[2]}")
+            else:
+                debug_info.append("✗ Analytics query returned no results")
+                
+        except Exception as e:
+            debug_info.append(f"✗ Analytics query failed: {str(e)}")
+            
+        # 5. Check date formats in transactions
+        debug_info.append("<h3>5. Transaction Date Format Check:</h3>")
+        date_cursor = conn.execute('''
+            SELECT DISTINCT 
+                strftime('%m', date) as month_part,
+                strftime('%Y', date) as year_part,
+                date as original_date
+            FROM transactions 
+            LIMIT 10
+        ''')
+        date_formats = date_cursor.fetchall()
+        
+        debug_info.append("Transaction date formats:")
+        for date_format in date_formats:
+            debug_info.append(f"  - Original: {date_format[2]}, Month: {date_format[0]}, Year: {date_format[1]}")
+            
+        conn.close()
+        
+        return "<br>".join(debug_info) + '<br><br><a href="/analytics">Back to Analytics</a>'
+        
+    except Exception as e:
+        return f"Debug error: {str(e)}"
 
 # ALTERNATIVE APPROACH: Fix the database data types
 def fix_budget_data_types():
