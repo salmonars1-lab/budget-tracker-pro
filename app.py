@@ -269,13 +269,15 @@ def ensure_current_budget_period():
 
 @app.route('/analytics')
 def analytics():
+    # Current month/year for context (defined at start to avoid UnboundLocalError)
+    current_date = datetime.now()
+    current_month = current_date.month
+    current_year = current_date.year
+    
     try:
-        conn = get_db()
-        
-        # Current month/year for context
-        current_date = datetime.now()
-        current_month = current_date.month
-        current_year = current_date.year
+        # Use your existing database connection method
+        conn = sqlite3.connect('budget_tracker.db', timeout=30)
+        conn.execute('PRAGMA journal_mode=WAL')
         
         # Category spending chart data (this was already working)
         category_spending_cursor = conn.execute('''
@@ -372,10 +374,6 @@ def analytics():
                              current_month=current_month,
                              current_year=current_year,
                              error_message="Unable to load analytics data")
-
-
-# DEBUGGING HELPER FUNCTION
-# Add this temporary route to inspect your data types
 @app.route('/debug-budget-data')
 def debug_budget_data():
     """Temporary debug route to inspect budget data types"""
