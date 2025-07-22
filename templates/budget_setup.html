@@ -3,89 +3,144 @@
 {% block title %}Budget Setup - Budget Tracker{% endblock %}
 
 {% block content %}
-<div x-data="budgetSetup()" class="max-w-4xl mx-auto">
+<div x-data="budgetSetup()" class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Budget Setup</h2>
-        <p class="text-gray-600">Set your monthly budget for {{ current_month }}/{{ current_year }}</p>
-    </div>
-<div class="mb-8">
-    <h2 class="text-2xl font-bold text-gray-900 mb-2">Budget Setup</h2>
-    <p class="text-gray-600">Set your monthly budget for {{ current_month }}/{{ current_year }}</p>
-</div>
-
-<!-- Category Management Section -->
-<div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-    <div class="flex items-center justify-between">
-        <div>
-            <h3 class="text-sm font-medium text-blue-800">Category Management</h3>
-            <p class="text-xs text-blue-600">Add, edit, or remove expense categories before setting your budget amounts</p>
-        </div>
-        <a href="/manage-categories" 
-           class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors">
-            Manage Categories →
-        </a>
-    </div>
-</div>
-
-<!-- Budget Form -->
-<div class="bg-white rounded-lg shadow">
-    <!-- Budget Form -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Monthly Budget Allocations</h3>
-                <div class="text-sm text-gray-500">
-                    Total: <span x-text="formatCurrency(totalBudget)" class="font-medium"></span>
-                </div>
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Budget Setup</h2>
+                <p class="text-gray-600">Configure your monthly budget and sinking funds for {{ current_month }}/{{ current_year }}</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="text-sm text-blue-800 font-medium">Total Monthly Budget</div>
+                <div class="text-2xl font-bold text-blue-900" x-text="formatCurrency(totalBudget)"></div>
             </div>
         </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-sm font-medium text-blue-800">Quick Setup Options</h3>
+                <p class="text-xs text-blue-600">Choose a preset or start from scratch</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" 
+                        @click="loadPreset('original')"
+                        class="inline-flex items-center px-3 py-2 text-sm bg-white border border-blue-300 rounded-md text-blue-700 hover:bg-blue-50 transition-colors">
+                    <span class="mr-1">💼</span>
+                    Load Original Budget (256k)
+                </button>
+                <button type="button" 
+                        @click="evenSplit()"
+                        class="inline-flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                    <span class="mr-1">📊</span>
+                    Even Split (20k each)
+                </button>
+                <button type="button" 
+                        @click="clearAll()"
+                        class="inline-flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                    <span class="mr-1">🗑️</span>
+                    Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Management Section -->
+    <div class="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">🗂️</span>
+                <div>
+                    <h3 class="text-sm font-medium text-yellow-800">Category Management</h3>
+                    <p class="text-xs text-yellow-600">Add, edit, or remove expense categories before setting budget amounts</p>
+                </div>
+            </div>
+            <a href="/manage-categories" 
+               class="inline-flex items-center bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 text-sm font-medium transition-colors">
+                <span class="mr-2">⚙️</span>
+                Manage Categories
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="/budget-setup" class="space-y-8">
         
-        <form method="POST" action="/budget-setup" class="p-6">
-            <div class="space-y-6">
-                {% for item in budget_data %}
-                <div class="flex items-center justify-between py-4 border-b border-gray-100 last:border-b-0">
-                    <div class="flex-1">
-                        <label for="budget_{{ item.id }}" class="block text-sm font-medium text-gray-900">
-                            {{ item.category_name }}
-                        </label>
-                        <p class="text-xs text-gray-500 mt-1">Monthly allocation for this category</p>
+        <!-- Budget Categories Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-xl mr-3">💰</span>
+                        <h3 class="text-lg font-semibold text-gray-900">Monthly Budget Categories</h3>
                     </div>
-                    <div class="ml-4 w-48">
-                        <div class="relative">
-                            <span class="absolute left-3 top-2 text-gray-500">JMD $</span>
-                            <input type="number" 
-                                   id="budget_{{ item.id }}" 
-                                   name="budget_{{ item.id }}" 
-                                   value="{{ item.budgeted_amount if item.budgeted_amount > 0 else '' }}"
-                                   x-model.number="budgets[{{ loop.index0 }}]"
-                                   step="0.01" 
-                                   min="0"
-                                   placeholder="0.00"
-                                   class="w-full border border-gray-300 rounded-md pl-12 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-sm text-gray-500">
+                        <span x-text="budgets.filter(b => b > 0).length"></span> categories with budget
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid gap-4">
+                    {% for item in budget_data %}
+                    <div class="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors">
+                        <div class="flex-1">
+                            <label for="budget_{{ item.id }}" class="block text-sm font-medium text-gray-900">
+                                {{ item.category_name }}
+                            </label>
+                            <p class="text-xs text-gray-500 mt-1">Monthly allocation for this category</p>
+                        </div>
+                        <div class="ml-4 w-48">
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500 text-sm">JMD $</span>
+                                <input type="number" 
+                                       id="budget_{{ item.id }}" 
+                                       name="budget_{{ item.id }}" 
+                                       value="{{ item.budgeted_amount if item.budgeted_amount > 0 else '' }}"
+                                       x-model.number="budgets[{{ loop.index0 }}]"
+                                       step="0.01" 
+                                       min="0"
+                                       placeholder="0.00"
+                                       class="w-full border border-gray-300 rounded-md pl-14 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+        </div>
 
-            <!-- Sinking Funds Section -->
-            <div class="mt-8 border-t border-gray-200 pt-8">
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Sinking Funds Settings</h4>
-                <p class="text-sm text-gray-600 mb-6">Set targets and monthly allocations for your sinking funds</p>
-                
-                <div class="space-y-6">
+        <!-- Sinking Funds Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <div class="flex items-center">
+                    <span class="text-xl mr-3">🎯</span>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Sinking Funds Configuration</h3>
+                        <p class="text-sm text-gray-600 mt-1">Set savings goals and monthly contributions</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid gap-6">
                     {% for fund in sinking_funds_data %}
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h5 class="font-medium text-gray-900 mb-3">{{ fund.name }}</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <div class="flex items-center mb-4">
+                            <span class="text-2xl mr-3">💰</span>
+                            <h4 class="text-lg font-medium text-gray-900">{{ fund.name }}</h4>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <!-- Target Amount -->
                             <div>
-                                <label for="sf_target_{{ fund.id }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="sf_target_{{ fund.id }}" class="block text-sm font-medium text-gray-700 mb-2">
                                     Target Amount (JMD)
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                    <span class="absolute left-3 top-2 text-gray-500 text-sm">$</span>
                                     <input type="number" 
                                            id="sf_target_{{ fund.id }}" 
                                            name="sf_target_{{ fund.id }}" 
@@ -93,17 +148,17 @@
                                            step="0.01" 
                                            min="0"
                                            placeholder="0.00"
-                                           class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
                                 </div>
                             </div>
                             
                             <!-- Monthly Allocation -->
                             <div>
-                                <label for="sf_monthly_{{ fund.id }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="sf_monthly_{{ fund.id }}" class="block text-sm font-medium text-gray-700 mb-2">
                                     Monthly Allocation (JMD)
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                    <span class="absolute left-3 top-2 text-gray-500 text-sm">$</span>
                                     <input type="number" 
                                            id="sf_monthly_{{ fund.id }}" 
                                            name="sf_monthly_{{ fund.id }}" 
@@ -111,102 +166,121 @@
                                            step="0.01" 
                                            min="0"
                                            placeholder="0.00"
-                                           class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Current Progress -->
-                        <div class="mt-3 text-sm text-gray-600">
-                            <div class="flex justify-between">
-                                <span>Current Balance:</span>
-                                <span class="font-medium">{{ fund.current_balance|currency }}</span>
+                            
+                            <!-- Current Progress -->
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <h5 class="text-sm font-medium text-gray-700 mb-2">Current Status</h5>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Balance:</span>
+                                        <span class="font-medium text-green-600">{{ fund.current_balance|currency }}</span>
+                                    </div>
+                                    {% if fund.target_amount > 0 %}
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Progress:</span>
+                                        <span class="font-medium text-blue-600">{{ ((fund.current_balance / fund.target_amount * 100) if fund.target_amount > 0 else 0)|round(1) }}%</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% if fund.target_amount > 0 %}
-                            <div class="flex justify-between">
-                                <span>Progress:</span>
-                                <span class="font-medium">{{ ((fund.current_balance / fund.target_amount * 100) if fund.target_amount > 0 else 0)|round(1) }}%</span>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
+        </div>
 
-            <!-- Summary Card -->
-            <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex items-center justify-between">
+        <!-- Budget Summary Card -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="text-3xl mr-4">📊</span>
                     <div>
-                        <h4 class="text-sm font-medium text-blue-800">Total Monthly Budget</h4>
-                        <p class="text-xs text-blue-600">Sum of all category allocations</p>
+                        <h4 class="text-lg font-medium text-blue-900">Total Monthly Budget</h4>
+                        <p class="text-sm text-blue-600">Sum of all category allocations</p>
                     </div>
-                    <div class="text-2xl font-bold text-blue-900" x-text="formatCurrency(totalBudget)"></div>
                 </div>
-                <div class="mt-3 text-xs text-blue-700">
-                    <template x-if="totalBudget === 0">
-                        <p>💡 Enter your budget amounts for each category above</p>
-                    </template>
-                    <template x-if="totalBudget > 0 && totalBudget < 200000">
-                        <p>💡 Your total seems low - typical monthly budgets are 200,000+ JMD</p>
-                    </template>
-                    <template x-if="totalBudget >= 200000">
-                        <p>✅ Budget looks good! Remember to review and adjust monthly</p>
-                    </template>
+                <div class="text-right">
+                    <div class="text-3xl font-bold text-blue-900" x-text="formatCurrency(totalBudget)"></div>
+                    <div class="text-sm text-blue-600" x-text="budgets.filter(b => b > 0).length + ' categories'"></div>
                 </div>
             </div>
-
-            <!-- Preset Buttons -->
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Setup Options</h4>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" 
-                            @click="loadPreset('original')"
-                            class="px-3 py-1 text-xs bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
-                        Load Original Budget (256k)
-                    </button>
-                    <button type="button" 
-                            @click="clearAll()"
-                            class="px-3 py-1 text-xs bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
-                        Clear All
-                    </button>
-                    <button type="button" 
-                            @click="evenSplit()"
-                            class="px-3 py-1 text-xs bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
-                        Even Split (20k each)
-                    </button>
+            
+            <!-- Smart Insights -->
+            <div class="mt-4 pt-4 border-t border-blue-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div x-show="totalBudget === 0" class="text-blue-700">
+                        💡 Enter your budget amounts for each category above
+                    </div>
+                    <div x-show="totalBudget > 0 && totalBudget < 200000" class="text-yellow-700">
+                        💡 Your total seems low - typical monthly budgets are 200,000+ JMD
+                    </div>
+                    <div x-show="totalBudget >= 200000" class="text-green-700">
+                        ✅ Budget looks good! Remember to review and adjust monthly
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Form Actions -->
-            <div class="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-                <a href="/" class="text-gray-600 hover:text-gray-900 font-medium">
-                    ← Back to Dashboard
-                </a>
-                <div class="flex space-x-3">
-                    <button type="button" 
-                            @click="resetToOriginal()"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium">
-                        Reset
-                    </button>
-                    <button type="submit" 
-                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors">
-                        Save Budget
-                    </button>
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between py-6">
+            <a href="/" 
+               class="inline-flex items-center text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Dashboard
+            </a>
+            <div class="flex space-x-3">
+                <button type="button" 
+                        @click="resetToOriginal()"
+                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                    Reset to Current
+                </button>
+                <button type="submit" 
+                        class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Budget
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Tips Section -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div class="flex items-start">
+            <span class="text-2xl mr-3">💡</span>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800 mb-3">Budget Tips & Best Practices</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-yellow-700">
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <span class="mr-2">•</span>
+                            <span>Review and adjust your budget monthly based on actual spending</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="mr-2">•</span>
+                            <span>Aim for 50% needs, 30% wants, 20% savings/debt repayment</span>
+                        </li>
+                    </ul>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <span class="mr-2">•</span>
+                            <span>Emergency fund should be 3-6 months of expenses</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="mr-2">•</span>
+                            <span>Track your progress regularly to stay on target</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
-        </form>
-    </div>
-
-    <!-- Tips -->
-    <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 class="text-sm font-medium text-yellow-800 mb-2">💡 Budget Tips</h3>
-        <ul class="text-sm text-yellow-700 space-y-1">
-            <li>• Review and adjust your budget monthly based on actual spending</li>
-            <li>• Aim for 50% needs, 30% wants, 20% savings/debt repayment</li>
-            <li>• Emergency fund should be 3-6 months of expenses</li>
-            <li>• Track your progress regularly to stay on target</li>
-        </ul>
+        </div>
     </div>
 </div>
 
@@ -227,7 +301,7 @@ function budgetSetup() {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD'
-            }).format(amount);
+            }).format(amount || 0);
         },
         
         loadPreset(type) {
@@ -260,13 +334,9 @@ function budgetSetup() {
         
         updateInputs() {
             this.budgets.forEach((amount, index) => {
-                const input = document.querySelector(`input[name="budget_{{ budget_data[0].id }}"]`).form.elements[`budget_{{ budget_data[0].id }}`];
-                if (input) {
-                    // Find the right input by index
-                    const inputs = document.querySelectorAll('input[name^="budget_"]');
-                    if (inputs[index]) {
-                        inputs[index].value = amount;
-                    }
+                const inputs = document.querySelectorAll('input[name^="budget_"]');
+                if (inputs[index]) {
+                    inputs[index].value = amount;
                 }
             });
         }
