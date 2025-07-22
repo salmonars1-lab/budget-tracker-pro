@@ -4,154 +4,433 @@
 
 {% block content %}
 <div x-data="analytics()" x-init="init()">
-    <!-- Header -->
-    <div class="mb-8 flex justify-between items-center">
+    <!-- Header with Better Branding -->
+    <div class="mb-8 flex items-center justify-between flex-wrap gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-1">Analytics Dashboard</h2>
-            <p class="text-gray-600">Visualize your spending patterns and savings goals</p>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Analytics Dashboard</h2>
+            <p class="text-gray-600">Visualize your spending patterns and progress for {{ current_month_name }}</p>
         </div>
         <div class="text-right">
             <div class="text-sm text-gray-500">Powered by</div>
             <div class="text-lg font-bold text-blue-600">Budget Tracker Pro</div>
+            <div class="text-xs text-gray-400">Personal Finance Suite</div>
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Loading State -->
+    <div x-show="loading" x-cloak class="text-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-500">Loading your analytics...</p>
+    </div>
+
+    <!-- Charts Grid -->
+    <div x-show="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        
         <!-- Category Spending Chart -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Category Spending – {{ current_month_name }}</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Category Spending</h3>
+                <span class="text-sm text-gray-500">{{ current_month_name }}</span>
+            </div>
+            
             {% if category_spending %}
-            <div class="relative h-64 mb-4">
+            <div class="relative h-72 mb-4">
                 <canvas id="categoryChart"></canvas>
             </div>
-            <div class="max-h-40 overflow-y-auto space-y-2 text-sm">
+            <div class="max-h-40 overflow-y-auto space-y-2">
                 {% for item in category_spending %}
-                <div class="flex justify-between border-b pb-1">
-                    <span class="text-gray-700">{{ item.category }}</span>
-                    <span class="font-medium">{{ item.total_spent|currency }}</span>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 rounded-full" 
+                             style="background-color: {{ ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'][loop.index0 % 10] }}"></div>
+                        <span class="text-sm text-gray-700">{{ item.category }}</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-900">{{ item.total_spent|currency }}</span>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-center text-gray-500 py-8">No spending data available.</p>
+            <div class="text-center text-gray-500 py-12">
+                <div class="text-4xl mb-4">📊</div>
+                <p class="text-lg font-medium mb-2">No spending data yet</p>
+                <p class="text-sm mb-4">Start tracking your expenses to see insights</p>
+                <a href="/add-transaction" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Transaction
+                </a>
+            </div>
             {% endif %}
         </div>
 
-        <!-- Budget vs Actual -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Budget vs Actual – {{ current_month_name }}</h3>
+        <!-- Budget vs Actual Chart -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Budget vs Actual</h3>
+                <span class="text-sm text-gray-500">{{ current_month_name }}</span>
+            </div>
+            
             {% if budget_vs_actual %}
-            <div class="relative h-64 mb-4">
+            <div class="relative h-72 mb-4">
                 <canvas id="budgetChart"></canvas>
             </div>
-            <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto text-sm">
+            <div class="max-h-48 overflow-y-auto space-y-3">
                 {% for item in budget_vs_actual %}
-                <div class="py-3 flex justify-between">
-                    <span class="text-gray-700 font-medium">{{ item.category }}</span>
-                    <div class="text-right">
-                        <div>
-                            <span class="font-semibold text-gray-900">{{ item.spent|currency }}</span>
-                            / <span class="text-gray-500">{{ item.budgeted|currency }}</span>
+                {% set spent_float = item.spent|float %}
+                {% set budgeted_float = item.budgeted|float %}
+                {% set percentage = ((spent_float / budgeted_float * 100) if budgeted_float > 0 else 0)|round(1) %}
+                <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900">{{ item.category }}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div class="h-1.5 rounded-full transition-all duration-300
+                                       {% if percentage > 100 %}bg-red-500
+                                       {% elif percentage > 80 %}bg-yellow-500
+                                       {% else %}bg-green-500{% endif %}" 
+                                 style="width: {{ [percentage, 100]|min }}%"></div>
                         </div>
-                        <div class="text-xs mt-1 font-medium {% if item.spent|float > item.budgeted|float %}text-red-600{% else %}text-green-600{% endif %}">
-                            {{ ((item.spent|float / item.budgeted|float * 100) if item.budgeted|float > 0 else 0)|round(1) }}%
+                    </div>
+                    <div class="ml-4 text-right">
+                        <div class="text-sm">
+                            <span class="font-semibold {% if spent_float > budgeted_float %}text-red-600{% else %}text-gray-900{% endif %}">
+                                {{ item.spent|currency }}
+                            </span>
+                            <span class="text-gray-400"> / </span>
+                            <span class="text-gray-600">{{ item.budgeted|currency }}</span>
+                        </div>
+                        <div class="text-xs font-medium mt-1 {% if percentage > 100 %}text-red-600{% elif percentage > 80 %}text-yellow-600{% else %}text-green-600{% endif %}">
+                            {{ percentage }}% used
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-center text-gray-500 py-8">No budget data available.</p>
+            <div class="text-center text-gray-500 py-12">
+                <div class="text-4xl mb-4">📋</div>
+                <p class="text-lg font-medium mb-2">No budget data available</p>
+                <p class="text-sm mb-4">Set up your monthly budget to track progress</p>
+                <a href="/budget-setup" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Set Up Budget
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Sinking Fund Progress -->
-    <div class="mt-8 bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Sinking Fund Progress</h3>
+    <!-- Sinking Funds Progress -->
+    <div x-show="!loading" class="mt-8 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Sinking Fund Progress</h3>
+        
         {% if sinking_fund_progress %}
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {% for fund in sinking_fund_progress %}
-            <div class="border-b pb-3 last:border-b-0">
-                <div class="flex justify-between text-sm font-medium">
-                    <span class="text-gray-800">{{ fund.name }}</span>
-                    <span class="text-gray-600">{{ fund.progress_percent }}%</span>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-medium text-gray-900">{{ fund.name }}</h4>
+                    <span class="text-sm font-medium {% if fund.progress_percent >= 100 %}text-green-600{% elif fund.progress_percent >= 75 %}text-blue-600{% elif fund.progress_percent >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ fund.progress_percent }}%
+                    </span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div class="h-2 rounded-full {% if fund.progress_percent >= 100 %}bg-green-500{% elif fund.progress_percent >= 75 %}bg-blue-500{% elif fund.progress_percent >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ [fund.progress_percent, 100]|min }}%"></div>
+                
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+                    <div class="h-3 rounded-full transition-all duration-500 ease-out
+                               {% if fund.progress_percent >= 100 %}bg-green-500
+                               {% elif fund.progress_percent >= 75 %}bg-blue-500
+                               {% elif fund.progress_percent >= 50 %}bg-yellow-500
+                               {% else %}bg-red-500{% endif %}" 
+                         style="width: {{ [fund.progress_percent, 100]|min }}%"></div>
                 </div>
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>{{ fund.current_balance|currency }} saved</span>
-                    <span>Target: {{ fund.target_amount|currency }}</span>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">Current:</span>
+                        <div class="font-medium text-gray-900">{{ fund.current_balance|currency }}</div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Target:</span>
+                        <div class="font-medium text-gray-900">{{ fund.target_amount|currency }}</div>
+                    </div>
                 </div>
+                
+                {% if fund.progress_percent < 100 %}
+                <div class="mt-2 text-xs text-gray-500">
+                    {{ (fund.target_amount - fund.current_balance)|currency }} remaining
+                </div>
+                {% else %}
+                <div class="mt-2 text-xs text-green-600 font-medium">
+                    🎯 Goal achieved!
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
+        
+        <!-- Summary Stats -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-blue-50 rounded-lg p-3">
+                    <div class="text-xs text-blue-600 font-medium">Total Saved</div>
+                    <div class="text-lg font-bold text-blue-900">{{ sinking_fund_progress|sum(attribute='current_balance')|currency }}</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-3">
+                    <div class="text-xs text-green-600 font-medium">Total Targets</div>
+                    <div class="text-lg font-bold text-green-900">{{ sinking_fund_progress|sum(attribute='target_amount')|currency }}</div>
+                </div>
+                <div class="bg-yellow-50 rounded-lg p-3">
+                    <div class="text-xs text-yellow-600 font-medium">Monthly Allocation</div>
+                    <div class="text-lg font-bold text-yellow-900">{{ sinking_fund_progress|sum(attribute='monthly_allocation')|currency }}</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-3">
+                    <div class="text-xs text-purple-600 font-medium">Overall Progress</div>
+                    <div class="text-lg font-bold text-purple-900">
+                        {% set total_saved = sinking_fund_progress|sum(attribute='current_balance') %}
+                        {% set total_targets = sinking_fund_progress|sum(attribute='target_amount') %}
+                        {{ ((total_saved / total_targets * 100) if total_targets > 0 else 0)|round(1) }}%
+                    </div>
+                </div>
+            </div>
+        </div>
         {% else %}
-        <p class="text-center text-gray-500 py-8">No sinking funds available.</p>
+        <div class="text-center text-gray-500 py-12">
+            <div class="text-4xl mb-4">🎯</div>
+            <p class="text-lg font-medium mb-2">No sinking funds set up</p>
+            <p class="text-sm mb-4">Create savings goals to track your progress</p>
+            <a href="/budget-setup" 
+               class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Set Up Sinking Funds
+            </a>
+        </div>
         {% endif %}
+    </div>
+
+    <!-- Smart Insights (if data exists) -->
+    {% if budget_vs_actual or sinking_fund_progress %}
+    <div x-show="!loading" class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
+            <span class="text-2xl mr-2">💡</span>
+            Smart Insights
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {% if budget_vs_actual %}
+            {% set over_budget = budget_vs_actual|selectattr('spent', 'gt', 'budgeted')|list %}
+            {% if over_budget %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="text-red-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">⚠️</span>
+                    Over Budget Alert
+                </div>
+                <div class="text-red-700 text-sm mt-1">
+                    {{ over_budget|length }} categories exceeded budget
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            {% if sinking_fund_progress %}
+            {% set completed_funds = sinking_fund_progress|selectattr('progress_percent', 'ge', 100)|list %}
+            {% if completed_funds %}
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="text-green-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">🎉</span>
+                    Goals Achieved
+                </div>
+                <div class="text-green-700 text-sm mt-1">
+                    {{ completed_funds|length }} sinking fund goals completed!
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="text-blue-800 font-medium flex items-center">
+                    <span class="text-xl mr-2">📈</span>
+                    Keep Going!
+                </div>
+                <div class="text-blue-700 text-sm mt-1">
+                    You're actively tracking your finances!
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="mt-8 text-center text-sm text-gray-500">
+        <div class="flex items-center justify-center space-x-2">
+            <span>Built with</span>
+            <span class="text-red-500">♥</span>
+            <span>by Budget Tracker Pro</span>
+        </div>
     </div>
 </div>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 function analytics() {
     return {
+        loading: true,
+        charts: {},
+        
         init() {
-            // Category Spending Chart
+            try {
+                this.initCharts();
+                this.loading = false;
+            } catch (error) {
+                console.error('Chart initialization failed:', error);
+                this.loading = false;
+            }
+        },
+        
+        initCharts() {
+            // Category Spending Doughnut Chart
             {% if category_spending %}
-            new Chart(document.getElementById('categoryChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: [{% for item in category_spending %}'{{ item.category }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-                    datasets: [{
-                        data: [{% for item in category_spending %}{{ item.total_spent|float }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        backgroundColor: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'bottom' }
+            const categoryCtx = document.getElementById('categoryChart');
+            if (categoryCtx) {
+                this.charts.category = new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [{% for item in category_spending %}'{{ item.category }}'{{ "," if not loop.last }}{% endfor %}],
+                        datasets: [{
+                            data: [{% for item in category_spending %}{{ item.total_spent|float }}{{ "," if not loop.last }}{% endfor %}],
+                            backgroundColor: [
+                                '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+                                '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            hoverBorderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // We show legend below chart
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return context.label + ': $' + value.toLocaleString() + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            animateRotate: true,
+                            duration: 1000
+                        }
                     }
-                }
-            });
+                });
+            }
             {% endif %}
 
-            // Budget vs Actual Chart
+            // Budget vs Actual Bar Chart
             {% if budget_vs_actual %}
-            new Chart(document.getElementById('budgetChart'), {
-                type: 'bar',
-                data: {
-                    labels: [{% for item in budget_vs_actual %}'{{ item.category }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-                    datasets: [
-                        {
-                            label: 'Budgeted',
-                            data: [{% for item in budget_vs_actual %}{{ item.budgeted|float }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                            backgroundColor: '#93C5FD'
-                        },
-                        {
-                            label: 'Spent',
-                            data: [{% for item in budget_vs_actual %}{{ item.spent|float }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                            backgroundColor: '#FCA5A5'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' }
+            const budgetCtx = document.getElementById('budgetChart');
+            if (budgetCtx) {
+                this.charts.budget = new Chart(budgetCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [{% for item in budget_vs_actual %}'{{ item.category[:12] }}{{ "..." if item.category|length > 12 }}'{{ "," if not loop.last }}{% endfor %}],
+                        datasets: [
+                            {
+                                label: 'Budgeted',
+                                data: [{% for item in budget_vs_actual %}{{ item.budgeted|float }}{{ "," if not loop.last }}{% endfor %}],
+                                backgroundColor: '#93C5FD',
+                                borderColor: '#3B82F6',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Spent',
+                                data: [{% for item in budget_vs_actual %}{{ item.spent|float }}{{ "," if not loop.last }}{% endfor %}],
+                                backgroundColor: '#FCA5A5',
+                                borderColor: '#EF4444',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
                         }
                     }
+                });
+            }
+            {% endif %}
+        },
+        
+        destroy() {
+            // Cleanup charts when component is destroyed
+            Object.values(this.charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
                 }
             });
-            {% endif %}
         }
     }
 }
