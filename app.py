@@ -25,6 +25,31 @@ def init_db():
     
     conn.close()
 
+def init_db_if_needed():
+    """Initialize database if tables don't exist"""
+    conn = get_db_connection()
+    
+    try:
+        # Check if main tables exist
+        result = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='categories'"
+        ).fetchone()
+        
+        if not result:
+            print("Database tables not found. Initializing database...")
+            # Tables don't exist, initialize database
+            with open('schema.sql', 'r') as f:
+                conn.executescript(f.read())
+            conn.commit()
+            print("Database initialized successfully!")
+        else:
+            print("Database tables found. Skipping initialization.")
+    
+    except Exception as e:
+        print(f"Error checking/initializing database: {e}")
+    finally:
+        conn.close()
+
 def learn_categorization_pattern(description, category_id):
     """Learn from user's categorization choice"""
     if not description or not category_id:
@@ -985,5 +1010,12 @@ def manage_categories():
     return render_template('manage_categories.html', categories=categories_data)
 
 if __name__ == '__main__':
+    # Initialize database if it doesn't exist
+    if not os.path.exists(DATABASE):
+        init_db()
+    
+    # Always check if tables exist (for cloud deployments)
+    init_db_if_needed()
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
