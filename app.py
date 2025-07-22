@@ -270,111 +270,138 @@ def ensure_current_budget_period():
 @app.route('/analytics')
 def analytics():
     try:
-        from datetime import datetime, timedelta
+        from datetime import datetime
         conn = get_db_connection()
         now = datetime.now()
         current_month = now.month
         current_year = now.year
-        
-        # Category spending breakdown (this was already working)
+
+        # --- Category Spending Breakdown (already works) ---
         category_spending = conn.execute('''
             SELECT 
-                c.name as category,
-                SUM(t.amount) as total_spent
+                c.name AS category,
+                SUM(t.amount) AS total_spent
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
             WHERE strftime('%m', t.date) = ? 
-            AND strftime('%Y', t.date) = ?
-            AND t.sinking_fund_id IS NULL
+              AND strftime('%Y', t.date) = ?
+              AND t.sinking_fund_id IS NULL
             GROUP BY c.id, c.name
-            HAVING total_spent > 0
             ORDER BY total_spent DESC
         ''', (f'{current_month:02d}', str(current_year))).fetchall()
-        
-        # FIXED: Budget vs Actual - this was missing!
+
+        # --- Budget vs Actual Calculation ---
         budget_vs_actual = []
-        
+
         # Get current budget period
         budget_period = conn.execute('''
             SELECT id FROM budget_periods 
             WHERE month = ? AND year = ?
         ''', (current_month, current_year)).fetchone()
-        
+
         if budget_period:
             budget_period_id = budget_period['id']
-            
-            # Get budget vs actual data (removed HAVING clause to avoid type error)
-            budget_raw_data = conn.execute('''
-                SELECT 
-                    c.name as category,
-                    ba.budgeted_amount,
-                    COALESCE(SUM(CASE WHEN t.sinking_fund_id IS NULL THEN t.amount ELSE 0 END), 0) as spent
+
+            # 1. Fetch budgeted allocations
+            budget_allocations = conn.execute('''
+                SELECT c.name AS category, ba.budgeted_amount
                 FROM budget_allocations ba
                 JOIN categories c ON ba.category_id = c.id
-                LEFT JOIN transactions t ON t.category_id = ba.category_id 
-                    AND strftime('%m', t.date) = ? 
-                    AND strftime('%Y', t.date) = ?
                 WHERE ba.budget_period_id = ?
-                GROUP BY c.name, ba.budgeted_amount
-                ORDER BY c.name
-            ''', (f'{current_month:02d}', str(current_year), budget_period_id)).fetchall()
-            
-            # Process the data to handle any type issues
-            for row in budget_raw_data:
+            ''', (budget_period_id,)).fetchall()
+
+            # 2. Fetch actual spending
+            spending_data = conn.execute('''
+                SELECT c.name AS category, SUM(t.amount) AS spent
+                FROM transactions t
+                JOIN categories c ON t.category_id = c.id
+                WHERE strftime('%m', t.date) = ? 
+                  AND strftime('%Y', t.date) = ?
+                  AND t.sinking_fund_id IS NULL
+                GROUP BY c.name
+            ''', (f'{current_month:02d}', str(current_year))).fetchall()
+
+            # 3. Convert spending to lookup dictionary
+            category_spending_dict = {
+                row['category']: float(row['spent']) if row['spent'] else 0.0
+                for row in spending_data
+            }
+
+            # 4. Combine budgeted and spent data
+            for allocation in budget_allocations:
                 try:
-                    category_name, budgeted_amount, spent = row
-                    
-                    # Convert to float, handling string amounts if needed
-                    if isinstance(budgeted_amount, str):
-                        budgeted_float = float(budgeted_amount.replace('$', '').replace(',', '').strip())
-                    else:
-                        budgeted_float = float(budgeted_amount)
-                    
-                    spent_float = float(spent) if spent else 0.0
-                    
-                    # Only include if budget > 0
-                    if budgeted_float > 0:
-                        budget_vs_actual.append({
-                            'category': category_name,
-                            'budgeted': budgeted_float,
-                            'spent': spent_float
-                        })
-                        
+                    category_name = allocation['category']
+                    budgeted = allocation['budgeted_amount']
+                    if budgeted is None:
+                        continue
+
+                    # Force cast to float
+                    budgeted_float = float(budgeted)
+                    if budgeted_float <= 0:
+                        continue
+
+                    spent_float = category_spending_dict.get(category_name, 0.0)
+
+                    budget_vs_actual.append({
+                        'category': category_name,
+                        'budgeted': budgeted_float,
+                        'spent': spent_float
+                    })
+
                 except (ValueError, TypeError) as e:
-                    print(f"Error processing budget data for {category_name}: {e}")
+                    print(f"Skipping invalid budget data: {allocation} -> {e}")
                     continue
-        
-        # Sinking fund progress (this was already working)
-        sinking_fund_progress = conn.execute('''
+
+        # --- Sinking Fund Progress ---
+        raw_sinking_funds = conn.execute('''
             SELECT 
                 sf.name,
                 sf.current_balance,
                 sf.target_amount,
-                sf.monthly_allocation,
-                CASE 
-                    WHEN sf.target_amount > 0 THEN ROUND((sf.current_balance * 100.0 / sf.target_amount), 1)
-                    ELSE 0 
-                END as progress_percent
+                sf.monthly_allocation
             FROM sinking_funds sf
             WHERE sf.is_active = 1
             ORDER BY sf.name
         ''').fetchall()
-        
-        # Monthly trends (simplified for now)
-        monthly_trends = []
-        
+
+        processed_sinking_funds = []
+        for fund in raw_sinking_funds:
+            try:
+                current_balance = float(fund['current_balance'] or 0)
+                target_amount = float(fund['target_amount'] or 0)
+                monthly_allocation = float(fund['monthly_allocation'] or 0)
+
+                progress_percent = (
+                    round((current_balance / target_amount) * 100.0, 1)
+                    if target_amount > 0 else 0.0
+                )
+
+                processed_sinking_funds.append({
+                    'name': fund['name'],
+                    'current_balance': current_balance,
+                    'target_amount': target_amount,
+                    'monthly_allocation': monthly_allocation,
+                    'progress_percent': progress_percent
+                })
+            except (ValueError, TypeError) as e:
+                print(f"Skipping invalid sinking fund data: {fund} -> {e}")
+                continue
+
         conn.close()
-        
+
         return render_template('analytics.html',
-                             category_spending=category_spending,
-                             monthly_trends=monthly_trends,
-                             budget_vs_actual=budget_vs_actual,  # Now has real data!
-                             sinking_fund_progress=sinking_fund_progress,
-                             current_month_name=now.strftime('%B %Y'))
-                             
+            category_spending=category_spending,
+            budget_vs_actual=budget_vs_actual,
+            monthly_trends=[],  # Future enhancement
+            sinking_fund_progress=processed_sinking_funds,
+            current_month_name=now.strftime('%B %Y')
+        )
+
     except Exception as e:
-        print(f"Analytics route error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return f"Analytics Error: {str(e)}"
+
         
 @app.route('/debug-budget-data')
 def debug_budget_data():
