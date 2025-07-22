@@ -269,111 +269,114 @@ def ensure_current_budget_period():
 
 @app.route('/analytics')
 def analytics():
-    # Current month/year for context (defined at start to avoid UnboundLocalError)
-    current_date = datetime.now()
-    current_month = current_date.month
-    current_year = current_date.year
-    
     try:
-        # Use your existing database connection method
-        conn = sqlite3.connect('budget_tracker.db', timeout=30)
-        conn.execute('PRAGMA journal_mode=WAL')
+        from datetime import datetime, timedelta
+        conn = get_db_connection()
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
         
-        # Category spending chart data (this was already working)
-        category_spending_cursor = conn.execute('''
-            SELECT c.name, SUM(t.amount) as total_spent
+        # Category spending breakdown (this was already working)
+        category_spending = conn.execute('''
+            SELECT 
+                c.name as category,
+                SUM(t.amount) as total_spent
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
-            WHERE strftime('%m', t.date) = ? AND strftime('%Y', t.date) = ?
-            GROUP BY c.name
+            WHERE strftime('%m', t.date) = ? 
+            AND strftime('%Y', t.date) = ?
+            AND t.sinking_fund_id IS NULL
+            GROUP BY c.id, c.name
+            HAVING total_spent > 0
             ORDER BY total_spent DESC
-        ''', (str(current_month).zfill(2), str(current_year)))
+        ''', (f'{current_month:02d}', str(current_year))).fetchall()
         
-        category_data = category_spending_cursor.fetchall()
+        # FIXED: Budget vs Actual - this was missing!
+        budget_vs_actual = []
         
-        # FIXED: Budget vs Actual - Handle data type conversion in Python
-        budget_vs_actual_cursor = conn.execute('''
-            SELECT 
-                c.name as category_name,
-                ba.budgeted_amount,
-                COALESCE(SUM(t.amount), 0) as actual_spent
-            FROM budget_allocations ba
-            JOIN categories c ON ba.category_id = c.id
-            JOIN budget_periods bp ON ba.budget_period_id = bp.id
-            LEFT JOIN transactions t ON t.category_id = ba.category_id 
-                AND strftime('%m', t.date) = printf('%02d', bp.month)
-                AND strftime('%Y', t.date) = CAST(bp.year AS TEXT)
-            WHERE bp.month = ? AND bp.year = ?
-            GROUP BY c.name, ba.budgeted_amount
-        ''', (current_month, current_year))
+        # Get current budget period
+        budget_period = conn.execute('''
+            SELECT id FROM budget_periods 
+            WHERE month = ? AND year = ?
+        ''', (current_month, current_year)).fetchone()
         
-        budget_raw_data = budget_vs_actual_cursor.fetchall()
-        
-        # Process and clean the data in Python to handle type mismatches
-        budget_vs_actual_data = []
-        for row in budget_raw_data:
-            category_name, budgeted_amount, actual_spent = row
+        if budget_period:
+            budget_period_id = budget_period['id']
             
-            # Convert budgeted_amount to float, handling various formats
-            try:
-                # Handle case where budgeted_amount might be stored as string
-                if isinstance(budgeted_amount, str):
-                    # Remove any currency symbols or commas
-                    cleaned_budget = budgeted_amount.replace('$', '').replace(',', '').strip()
-                    budgeted_float = float(cleaned_budget)
-                else:
-                    budgeted_float = float(budgeted_amount)
-                
-                # Only include categories with actual budget allocations > 0
-                if budgeted_float > 0:
-                    budget_vs_actual_data.append({
-                        'category': category_name,
-                        'budgeted': budgeted_float,
-                        'actual': float(actual_spent) if actual_spent else 0.0
-                    })
+            # Get budget vs actual data
+            budget_raw_data = conn.execute('''
+                SELECT 
+                    c.name as category,
+                    ba.budgeted_amount,
+                    COALESCE(SUM(CASE WHEN t.sinking_fund_id IS NULL THEN t.amount ELSE 0 END), 0) as spent
+                FROM budget_allocations ba
+                JOIN categories c ON ba.category_id = c.id
+                LEFT JOIN transactions t ON t.category_id = ba.category_id 
+                    AND strftime('%m', t.date) = ? 
+                    AND strftime('%Y', t.date) = ?
+                WHERE ba.budget_period_id = ?
+                GROUP BY c.name, ba.budgeted_amount
+                HAVING ba.budgeted_amount > 0
+                ORDER BY c.name
+            ''', (f'{current_month:02d}', str(current_year), budget_period_id)).fetchall()
+            
+            # Process the data to handle any type issues
+            for row in budget_raw_data:
+                try:
+                    category_name, budgeted_amount, spent = row
                     
-            except (ValueError, TypeError) as e:
-                # Log the problematic data for debugging
-                print(f"Error converting budget amount for {category_name}: {budgeted_amount} - {str(e)}")
-                continue
+                    # Convert to float, handling string amounts if needed
+                    if isinstance(budgeted_amount, str):
+                        budgeted_float = float(budgeted_amount.replace('$', '').replace(',', '').strip())
+                    else:
+                        budgeted_float = float(budgeted_amount)
+                    
+                    spent_float = float(spent) if spent else 0.0
+                    
+                    # Only include if budget > 0
+                    if budgeted_float > 0:
+                        budget_vs_actual.append({
+                            'category': category_name,
+                            'budgeted': budgeted_float,
+                            'spent': spent_float
+                        })
+                        
+                except (ValueError, TypeError) as e:
+                    print(f"Error processing budget data for {category_name}: {e}")
+                    continue
         
-        # Sinking fund progress data (this was already working)
-        sinking_funds_cursor = conn.execute('''
-            SELECT name, target_amount, current_balance
-            FROM sinking_funds
-            WHERE is_active = 1 AND target_amount > 0
-        ''')
+        # Sinking fund progress (this was already working)
+        sinking_fund_progress = conn.execute('''
+            SELECT 
+                sf.name,
+                sf.current_balance,
+                sf.target_amount,
+                sf.monthly_allocation,
+                CASE 
+                    WHEN sf.target_amount > 0 THEN ROUND((sf.current_balance * 100.0 / sf.target_amount), 1)
+                    ELSE 0 
+                END as progress_percent
+            FROM sinking_funds sf
+            WHERE sf.is_active = 1
+            ORDER BY sf.name
+        ''').fetchall()
         
-        sinking_funds_data = []
-        for row in sinking_funds_cursor.fetchall():
-            name, target, current = row
-            progress = (current / target * 100) if target > 0 else 0
-            sinking_funds_data.append({
-                'name': name,
-                'progress': round(progress, 1),
-                'current': current,
-                'target': target
-            })
+        # Monthly trends (simplified for now)
+        monthly_trends = []
         
         conn.close()
         
         return render_template('analytics.html',
-                             category_data=category_data,
-                             budget_vs_actual_data=budget_vs_actual_data,
-                             sinking_funds_data=sinking_funds_data,
-                             current_month=current_month,
-                             current_year=current_year)
+                             category_spending=category_spending,
+                             monthly_trends=monthly_trends,
+                             budget_vs_actual=budget_vs_actual,  # Now has real data!
+                             sinking_fund_progress=sinking_fund_progress,
+                             current_month_name=now.strftime('%B %Y'))
                              
     except Exception as e:
         print(f"Analytics route error: {str(e)}")
-        # Return page with empty data if there's an error
-        return render_template('analytics.html',
-                             category_data=[],
-                             budget_vs_actual_data=[],
-                             sinking_funds_data=[],
-                             current_month=current_month,
-                             current_year=current_year,
-                             error_message="Unable to load analytics data")
+        return f"Analytics Error: {str(e)}"
+        
 @app.route('/debug-budget-data')
 def debug_budget_data():
     """Temporary debug route to inspect budget data types"""
