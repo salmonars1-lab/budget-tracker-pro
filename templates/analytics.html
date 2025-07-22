@@ -78,30 +78,15 @@
             </div>
             <div class="max-h-48 overflow-y-auto space-y-3">
                 {% for item in budget_vs_actual %}
-                {% set spent_float = item.spent|float %}
-                {% set budgeted_float = item.budgeted|float %}
-                {% set percentage = ((spent_float / budgeted_float * 100) if budgeted_float > 0 else 0)|round(1) %}
                 <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
                     <div class="flex-1">
                         <div class="text-sm font-medium text-gray-900">{{ item.category }}</div>
-                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                            <div class="h-1.5 rounded-full transition-all duration-300
-                                       {% if percentage > 100 %}bg-red-500
-                                       {% elif percentage > 80 %}bg-yellow-500
-                                       {% else %}bg-green-500{% endif %}" 
-                                 style="width: {{ [percentage, 100]|min }}%"></div>
-                        </div>
                     </div>
                     <div class="ml-4 text-right">
                         <div class="text-sm">
-                            <span class="font-semibold {% if spent_float > budgeted_float %}text-red-600{% else %}text-gray-900{% endif %}">
-                                {{ item.spent|currency }}
-                            </span>
+                            <span class="font-semibold text-gray-900">{{ item.spent|currency }}</span>
                             <span class="text-gray-400"> / </span>
                             <span class="text-gray-600">{{ item.budgeted|currency }}</span>
-                        </div>
-                        <div class="text-xs font-medium mt-1 {% if percentage > 100 %}text-red-600{% elif percentage > 80 %}text-yellow-600{% else %}text-green-600{% endif %}">
-                            {{ percentage }}% used
                         </div>
                     </div>
                 </div>
@@ -223,8 +208,13 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {% if budget_vs_actual %}
-            {% set over_budget = budget_vs_actual|selectattr('spent', 'gt', 'budgeted')|list %}
-            {% if over_budget %}
+            {% set over_budget = [] %}
+            {% for item in budget_vs_actual %}
+                {% if item.spent > item.budgeted %}
+                    {% set _ = over_budget.append(item) %}
+                {% endif %}
+            {% endfor %}
+            {% if over_budget|length > 0 %}
             <div class="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div class="text-red-800 font-medium flex items-center">
                     <span class="text-xl mr-2">⚠️</span>
@@ -238,8 +228,13 @@
             {% endif %}
             
             {% if sinking_fund_progress %}
-            {% set completed_funds = sinking_fund_progress|selectattr('progress_percent', 'ge', 100)|list %}
-            {% if completed_funds %}
+            {% set completed_funds = [] %}
+            {% for fund in sinking_fund_progress %}
+                {% if fund.progress_percent >= 100 %}
+                    {% set _ = completed_funds.append(fund) %}
+                {% endif %}
+            {% endfor %}
+            {% if completed_funds|length > 0 %}
             <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div class="text-green-800 font-medium flex items-center">
                     <span class="text-xl mr-2">🎉</span>
