@@ -3,132 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Budget Tracker{% endblock %}</title>
-    
-    <!-- Tailwind CSS -->
+    <title>{% block title %}Budget Tracker Pro{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <!-- Custom styles -->
-    <style>
-        [x-cloak] { display: none !important; }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<nav class="bg-white shadow-lg relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-            <!-- Left: Logo -->
-            <div class="flex items-center">
-                <div class="text-xl font-bold text-gray-900 flex items-center">
-                    <span class="text-2xl mr-2">💰</span>
-                    <span class="hidden sm:inline">Budget Tracker Pro</span>
-                    <span class="sm:hidden">Budget Tracker</span>
+<body class="bg-gray-50">
+    <!-- Simple Mobile-First Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="text-xl font-bold text-gray-900">
+                    💰 Budget Tracker
                 </div>
-            </div>
-            
-            <!-- Center: Main Navigation (Desktop) -->
-            <div class="hidden md:flex space-x-8">
-                <a href="/" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    Dashboard
-                </a>
-                <a href="/transactions" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    Transactions
-                </a>
-            </div>
-
-            <!-- Right: Mobile menu button -->
-            <div class="md:hidden">
-                <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none focus:text-gray-900">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex space-x-6">
+                    <a href="/" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <a href="/transactions" class="text-gray-600 hover:text-gray-900">Transactions</a>
+                    <a href="/analytics" class="text-gray-600 hover:text-gray-900">Analytics</a>
+                    <a href="/budget-setup" class="text-gray-600 hover:text-gray-900">Budget Setup</a>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
             </div>
-
-            <!-- Right: Desktop Hamburger Menu -->
-            <div class="hidden md:block">
-                <div class="relative">
-                    <button id="desktop-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none focus:text-gray-900">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-                    
-                    <!-- Desktop Dropdown Menu -->
-                    <div id="desktop-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                        <a href="/analytics" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Analytics</a>
-                        <a href="/budget-setup" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Budget Setup</a>
-                        <div class="border-t border-gray-100"></div>
-                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
-                    </div>
-                </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <a href="/" class="block py-2 text-gray-600">Dashboard</a>
+                <a href="/transactions" class="block py-2 text-gray-600">Transactions</a>
+                <a href="/analytics" class="block py-2 text-gray-600">Analytics</a>
+                <a href="/budget-setup" class="block py-2 text-gray-600">Budget Setup</a>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Mobile menu -->
-    <div id="mobile-menu" class="hidden md:hidden">
-        <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-50 border-t">
-            <a href="/" class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-                Dashboard
-            </a>
-            <a href="/transactions" class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-                Transactions
-            </a>
-            <div class="border-t border-gray-200 my-2"></div>
-            <a href="/analytics" class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-                Analytics
-            </a>
-            <a href="/budget-setup" class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-                Budget Setup
-            </a>
-            <div class="border-t border-gray-200 my-2"></div>
-            <a href="#" class="text-gray-600 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-                Settings
-            </a>
-        </div>
-    </div>
-</nav>
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4">
+        {% block content %}{% endblock %}
+    </main>
 
-<!-- Floating Add Transaction Button -->
-<div class="fixed bottom-6 right-6 z-50">
-    <a href="/add-transaction" 
-       class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+    <!-- Floating Add Button -->
+    <a href="/add-transaction" class="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-blue-700">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
     </a>
-</div>
 
-<!-- JavaScript for Menu Toggle -->
-<script>
-    // Mobile menu toggle
-    const mobileMenuButton = document.getElementById('mobile-menu-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    
-    mobileMenuButton?.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-    });
-
-    // Desktop dropdown toggle
-    const desktopMenuButton = document.getElementById('desktop-menu-button');
-    const desktopDropdown = document.getElementById('desktop-dropdown');
-    
-    desktopMenuButton?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        desktopDropdown.classList.toggle('hidden');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', () => {
-        desktopDropdown?.classList.add('hidden');
-    });
-    
-    desktopDropdown?.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-</script>
+    <!-- Simple JavaScript -->
+    <script>
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
 </body>
 </html>
