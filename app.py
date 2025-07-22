@@ -291,19 +291,19 @@ def analytics():
             ORDER BY total_spent DESC
         ''', (f'{current_month:02d}', str(current_year))).fetchall()
         
-        # Budget vs Actual data (NEW - this was missing!)
+        # Budget vs Actual data (FIXED - handle type conversion)
         budget_vs_actual = conn.execute('''
             SELECT 
                 c.name as category_name,
-                COALESCE(ba.budgeted_amount, 0) as budgeted,
-                COALESCE(SUM(t.amount), 0) as spent
+                COALESCE(CAST(ba.budgeted_amount AS REAL), 0) as budgeted,
+                COALESCE(SUM(CAST(t.amount AS REAL)), 0) as spent
             FROM categories c
             LEFT JOIN budget_allocations ba ON c.id = ba.category_id AND ba.budget_period_id = ?
             LEFT JOIN transactions t ON c.id = t.category_id 
                 AND strftime('%Y', t.date) = ? 
                 AND strftime('%m', t.date) = ?
                 AND t.sinking_fund_id IS NULL
-            WHERE ba.budgeted_amount > 0
+            WHERE CAST(ba.budgeted_amount AS REAL) > 0
             GROUP BY c.id, c.name, ba.budgeted_amount
             ORDER BY c.name
         ''', (budget_period_id, str(current_year), f'{current_month:02d}')).fetchall()
@@ -329,11 +329,11 @@ def analytics():
         return render_template('analytics.html',
                              category_spending=category_spending,
                              monthly_trends=[],
-                             budget_vs_actual=budget_vs_actual,  # Now actually has data!
-                             budget_data=budget_vs_actual,      # Add this for the debug template
+                             budget_vs_actual=budget_vs_actual,
+                             budget_data=budget_vs_actual,
                              sinking_fund_progress=sinking_fund_progress,
-                             current_month=current_month,        # Add this for debug
-                             current_year=current_year,          # Add this for debug
+                             current_month=current_month,
+                             current_year=current_year,
                              current_month_name=now.strftime('%B %Y'))
     except Exception as e:
         return f"Analytics Error: {str(e)}"
