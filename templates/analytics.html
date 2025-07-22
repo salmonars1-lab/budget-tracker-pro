@@ -3,6 +3,19 @@
 {% block title %}Analytics - Budget Tracker{% endblock %}
 
 {% block content %}
+<!-- Debug Info -->
+<div class="bg-yellow-100 p-4 mb-4 rounded">
+    <h4>Debug Info:</h4>
+    <p>Budget allocations found: {{ budget_data|length if budget_data else 'None' }}</p>
+    <p>Current period: {{ current_month }}/{{ current_year }}</p>
+    {% if budget_data %}
+        {% for item in budget_data %}
+        <p>{{ item.category_name }}: Budgeted ${{ item.budgeted }}, Spent ${{ item.spent }}</p>
+        {% endfor %}
+    {% else %}
+        <p>No budget_data variable passed to template</p>
+    {% endif %}
+</div>
 <div x-data="analytics()" x-init="init()">
     <!-- Header with Branding -->
     <div class="mb-8 flex items-center justify-between">
