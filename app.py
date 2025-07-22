@@ -11,9 +11,26 @@ app = Flask(__name__)
 DATABASE = 'budget_tracker.db'
 
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    import time
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            conn = sqlite3.connect(DATABASE, timeout=30.0, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            # Enable WAL mode for better concurrency
+            conn.execute('PRAGMA journal_mode=WAL;')
+            conn.execute('PRAGMA synchronous=NORMAL;')
+            conn.execute('PRAGMA cache_size=1000;')
+            conn.execute('PRAGMA temp_store=memory;')
+            return conn
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < max_retries - 1:
+                time.sleep(0.1 * (attempt + 1))  # Short exponential backoff
+                continue
+            raise
+    raise sqlite3.OperationalError("Could not connect to database after retries")
+
 
 def init_db():
     """Initialize the database with tables and sample data"""
@@ -165,61 +182,87 @@ def currency_filter(amount):
 
 def ensure_current_budget_period():
     """Ensure current month budget period exists, create if needed"""
-    conn = get_db_connection()
+    import time
+    max_retries = 3
     
     now = datetime.now()
     current_month = now.month
     current_year = now.year
     
-    # Check if current budget period exists
-    budget_period = conn.execute(
-        'SELECT id FROM budget_periods WHERE month = ? AND year = ?',
-        (current_month, current_year)
-    ).fetchone()
-    
-    if not budget_period:
-        # Create new budget period
-        conn.execute(
-            'INSERT INTO budget_periods (month, year) VALUES (?, ?)',
-            (current_month, current_year)
-        )
-        budget_period_id = conn.lastrowid
-        
-        # Copy budget allocations from previous month
-        prev_month = current_month - 1 if current_month > 1 else 12
-        prev_year = current_year if current_month > 1 else current_year - 1
-        
-        prev_budget_period = conn.execute(
-            'SELECT id FROM budget_periods WHERE month = ? AND year = ?',
-            (prev_month, prev_year)
-        ).fetchone()
-        
-        if prev_budget_period:
-            # Copy allocations from previous month
-            prev_allocations = conn.execute(
-                'SELECT category_id, subcategory_id, budgeted_amount FROM budget_allocations WHERE budget_period_id = ?',
-                (prev_budget_period['id'],)
-            ).fetchall()
+    for attempt in range(max_retries):
+        try:
+            conn = get_db_connection()
             
-            for allocation in prev_allocations:
+            # Check if current budget period exists
+            budget_period = conn.execute(
+                'SELECT id FROM budget_periods WHERE month = ? AND year = ?',
+                (current_month, current_year)
+            ).fetchone()
+            
+            if not budget_period:
+                # Use INSERT OR IGNORE to handle race conditions
                 conn.execute(
-                    'INSERT INTO budget_allocations (budget_period_id, category_id, subcategory_id, budgeted_amount) VALUES (?, ?, ?, ?)',
-                    (budget_period_id, allocation['category_id'], allocation['subcategory_id'], allocation['budgeted_amount'])
+                    'INSERT OR IGNORE INTO budget_periods (month, year) VALUES (?, ?)',
+                    (current_month, current_year)
                 )
+                conn.commit()
+                
+                # Get the budget period ID
+                budget_period = conn.execute(
+                    'SELECT id FROM budget_periods WHERE month = ? AND year = ?',
+                    (current_month, current_year)
+                ).fetchone()
+                budget_period_id = budget_period['id']
+                
+                # Copy budget allocations from previous month (with error handling)
+                try:
+                    prev_month = current_month - 1 if current_month > 1 else 12
+                    prev_year = current_year if current_month > 1 else current_year - 1
+                    
+                    prev_budget_period = conn.execute(
+                        'SELECT id FROM budget_periods WHERE month = ? AND year = ?',
+                        (prev_month, prev_year)
+                    ).fetchone()
+                    
+                    if prev_budget_period:
+                        prev_allocations = conn.execute(
+                            'SELECT category_id, subcategory_id, budgeted_amount FROM budget_allocations WHERE budget_period_id = ?',
+                            (prev_budget_period['id'],)
+                        ).fetchall()
+                        
+                        for allocation in prev_allocations:
+                            conn.execute(
+                                'INSERT OR IGNORE INTO budget_allocations (budget_period_id, category_id, subcategory_id, budgeted_amount) VALUES (?, ?, ?, ?)',
+                                (budget_period_id, allocation['category_id'], allocation['subcategory_id'], allocation['budgeted_amount'])
+                            )
+                        
+                        # Record the transition
+                        conn.execute(
+                            'INSERT OR IGNORE INTO month_transitions (from_month, from_year, to_month, to_year, transition_date) VALUES (?, ?, ?, ?, ?)',
+                            (prev_month, prev_year, current_month, current_year, now.date())
+                        )
+                except Exception as e:
+                    print(f"Warning: Could not copy previous month's budget: {e}")
+                
+                conn.commit()
+            else:
+                budget_period_id = budget_period['id']
             
-            # Record the transition
-            conn.execute(
-                'INSERT INTO month_transitions (from_month, from_year, to_month, to_year, transition_date) VALUES (?, ?, ?, ?, ?)',
-                (prev_month, prev_year, current_month, current_year, now.date())
-            )
-        
-        conn.commit()
-        budget_period_id = budget_period_id
-    else:
-        budget_period_id = budget_period['id']
+            conn.close()
+            return budget_period_id
+            
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < max_retries - 1:
+                time.sleep(0.2 * (attempt + 1))
+                continue
+            else:
+                print(f"Database error in ensure_current_budget_period: {e}")
+                raise
+        except Exception as e:
+            print(f"Unexpected error in ensure_current_budget_period: {e}")
+            raise
     
-    conn.close()
-    return budget_period_id
+    raise sqlite3.OperationalError("Could not access database after retries")
 
 @app.route('/analytics')
 def analytics():
